@@ -16,3 +16,14 @@ spring:
 
 jwt:
   secret: ${JWT_SECRET}
+
+aws:
+  credentials:
+    access-key: test-access-key
+    secret-key: test-secret-key
+  region:
+    static: ap-northeast-2
+  s3:
+    bucket: test-bucket
+  cloudfront:
+    domain: test.cloudfront.net
