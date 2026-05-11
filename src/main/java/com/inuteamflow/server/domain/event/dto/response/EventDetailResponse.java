@@ -1,0 +1,83 @@
+package com.inuteamflow.server.domain.event.dto.response;
+
+import com.inuteamflow.server.domain.event.dto.Recurrence;
+import com.inuteamflow.server.domain.event.entity.Event;
+import com.inuteamflow.server.domain.event.entity.RecurrenceException;
+import com.inuteamflow.server.domain.event.entity.RecurrenceRule;
+import com.inuteamflow.server.domain.event.enums.EventKind;
+import com.inuteamflow.server.domain.event.enums.EventStatus;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+import java.time.LocalDateTime;
+
+@Getter
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+public class EventDetailResponse {
+
+    private Long eventId;
+    private Long teamId;
+    private String teamName;
+
+    private String title;
+    private String description;
+
+    private LocalDateTime occurrenceAt;
+    private LocalDateTime startAt;
+    private LocalDateTime endAt;
+
+    private Boolean isAllDay;
+    private String color;
+
+    private EventKind eventKind;
+    private EventStatus status;
+    private Boolean isException;
+
+    private Recurrence recurrence;
+
+    public static EventDetailResponse create(
+            Event event,
+            RecurrenceRule recurrenceRule
+    ) {
+        return new EventDetailResponse(
+                event.getEventId(),
+                event.getTeamId(),
+                null,
+                event.getTitle(),
+                event.getDescription(),
+                null,
+                event.getStartAt(),
+                event.getEndAt(),
+                event.getIsAllDay(),
+                event.getColor(),
+                event.getEventKind(),
+                event.getStatus(),
+                false,
+                Recurrence.create(recurrenceRule)
+        );
+    }
+
+    public static EventDetailResponse createModifiedOccurrence(
+            Event event,
+            RecurrenceRule recurrenceRule,
+            RecurrenceException recurrenceException
+    ) {
+        return new EventDetailResponse(
+                event.getEventId(),
+                event.getTeamId(),
+                null,
+                recurrenceException.getModifiedTitle(),
+                recurrenceException.getModifiedDescription(),
+                recurrenceException.getOriginalOccurrenceAt(),
+                recurrenceException.getModifiedStartAt(),
+                recurrenceException.getModifiedEndAt(),
+                recurrenceException.getModifiedIsAllDay(),
+                recurrenceException.getModifiedColor(),
+                event.getEventKind(),
+                event.getStatus(),
+                true,
+                Recurrence.create(recurrenceRule)
+        );
+    }
+}
