@@ -10,16 +10,16 @@ import java.util.Optional;
 
 public interface RecurrenceExceptionRepository extends JpaRepository<RecurrenceException, Long> {
 
-    List<RecurrenceException> findByEventIdIn(Collection<Long> eventIds);
+    List<RecurrenceException> findByEvent_EventIdIn(Collection<Long> eventIds);
 
-    Optional<RecurrenceException> findByEventIdAndOriginalOccurrenceAt(
+    Optional<RecurrenceException> findByEvent_EventIdAndOriginalOccurrenceAt(
             Long eventId,
             LocalDateTime originalOccurrenceAt
     );
 
-    void deleteByEventId(Long eventId);
+    void deleteByEvent_EventId(Long eventId);
 
-    void deleteByEventIdAndOriginalOccurrenceAtGreaterThanEqual(
+    void deleteByEvent_EventIdAndOriginalOccurrenceAtGreaterThanEqual(
             Long eventId,
             LocalDateTime originalOccurrenceAt
     );

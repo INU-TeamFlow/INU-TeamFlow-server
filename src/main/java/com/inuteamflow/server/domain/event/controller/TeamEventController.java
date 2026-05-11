@@ -26,11 +26,12 @@ public class TeamEventController {
 
     @GetMapping("/events")
     public ApiResponse<List<EventListResponse>> getTeamEventList(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
             @PathVariable("teamId") Long teamId,
             @RequestParam("year") Integer year,
             @RequestParam("month") Integer month
     ) {
-        return ApiResponse.ok(teamEventService.getTeamEventList(teamId, year, month));
+        return ApiResponse.ok(teamEventService.getTeamEventList(userDetails.getUser(), teamId, year, month));
     }
 
     @PostMapping("/events")

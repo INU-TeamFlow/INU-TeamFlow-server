@@ -2,6 +2,7 @@ package com.inuteamflow.server.domain.event.repository;
 
 import com.inuteamflow.server.domain.event.entity.Event;
 import com.inuteamflow.server.domain.event.enums.EventKind;
+import com.inuteamflow.server.domain.team.entity.Team;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDateTime;
@@ -23,28 +24,28 @@ public interface EventRepository extends JpaRepository<Event, Long> {
             LocalDateTime endAt
     );
 
-    List<Event> findByCreatedByAndTeamIdIsNullAndEventKindAndStartAtBeforeAndEndAtAfter(
+    List<Event> findByCreatedByAndTeamIsNullAndEventKindAndStartAtBeforeAndEndAtAfter(
             Long createdBy,
             EventKind eventKind,
             LocalDateTime endAt,
             LocalDateTime startAt
     );
 
-    List<Event> findByCreatedByAndTeamIdIsNullAndEventKindAndStartAtBefore(
+    List<Event> findByCreatedByAndTeamIsNullAndEventKindAndStartAtBefore(
             Long createdBy,
             EventKind eventKind,
             LocalDateTime endAt
     );
 
-    List<Event> findByTeamIdAndEventKindAndStartAtBeforeAndEndAtAfter(
-            Long teamId,
+    List<Event> findByTeamAndEventKindAndStartAtBeforeAndEndAtAfter(
+            Team team,
             EventKind eventKind,
             LocalDateTime endAt,
             LocalDateTime startAt
     );
 
-    List<Event> findByTeamIdAndEventKindAndStartAtBefore(
-            Long teamId,
+    List<Event> findByTeamAndEventKindAndStartAtBefore(
+            Team team,
             EventKind eventKind,
             LocalDateTime endAt
     );

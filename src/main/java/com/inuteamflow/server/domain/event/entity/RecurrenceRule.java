@@ -23,8 +23,9 @@ public class RecurrenceRule extends BaseTimeEntity {
     @Column(name = "recurrence_rule_id")
     private Long recurrenceRuleId;
 
-    @Column(name = "event_id")
-    private Long eventId;
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "event_id", nullable = false, unique = true)
+    private Event event;
 
     @Column(name = "freq")
     @Enumerated(EnumType.STRING)
@@ -54,7 +55,7 @@ public class RecurrenceRule extends BaseTimeEntity {
 
     @Builder
     private RecurrenceRule(
-            Long eventId,
+            Event event,
             RecurrenceFrequency freq,
             Integer intervalValue,
             DayOfWeek byDay,
@@ -64,7 +65,7 @@ public class RecurrenceRule extends BaseTimeEntity {
             Integer occurrenceCount,
             String timeZone
     ) {
-        this.eventId = eventId;
+        this.event = event;
         this.freq = freq;
         this.intervalValue = intervalValue;
         this.byDay = byDay;
@@ -76,13 +77,13 @@ public class RecurrenceRule extends BaseTimeEntity {
     }
 
     public static RecurrenceRule create(
-            Long eventId,
+            Event event,
             Recurrence recurrence,
             LocalDateTime seriesStartAt
     ) {
         return RecurrenceRule.builder()
-                .eventId(eventId)
-                .freq(recurrence.getRecurrenceFrequency())
+                .event(event)
+                .freq(recurrence.getFreq())
                 .intervalValue(recurrence.getIntervalValue())
                 .byDay(recurrence.getByDay())
                 .byMonthDay(recurrence.getByMonthDay())
@@ -93,11 +94,15 @@ public class RecurrenceRule extends BaseTimeEntity {
                 .build();
     }
 
+    public Long getEventId() {
+        return event.getEventId();
+    }
+
     public void update(
             Recurrence recurrence,
             LocalDateTime seriesStartAt
     ) {
-        this.freq = recurrence.getRecurrenceFrequency();
+        this.freq = recurrence.getFreq();
         this.intervalValue = recurrence.getIntervalValue();
         this.byDay = recurrence.getByDay();
         this.byMonthDay = recurrence.getByMonthDay();

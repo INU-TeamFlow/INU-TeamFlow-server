@@ -12,6 +12,11 @@ import com.inuteamflow.server.domain.event.enums.EventRole;
 import com.inuteamflow.server.domain.event.enums.RecurrenceEditScope;
 import com.inuteamflow.server.domain.event.repository.EventParticipantRepository;
 import com.inuteamflow.server.domain.event.repository.EventRepository;
+import com.inuteamflow.server.domain.team.entity.Team;
+import com.inuteamflow.server.domain.team.entity.TeamMember;
+import com.inuteamflow.server.domain.team.enums.TeamRole;
+import com.inuteamflow.server.domain.team.repository.TeamMemberRepository;
+import com.inuteamflow.server.domain.team.repository.TeamRepository;
 import com.inuteamflow.server.domain.user.entity.User;
 import com.inuteamflow.server.global.exception.error.CustomErrorCode;
 import com.inuteamflow.server.global.exception.error.RestApiException;
@@ -20,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -32,23 +38,27 @@ public class TeamEventService {
     private final EventRecurrenceService eventRecurrenceService;
     private final EventRepository eventRepository;
     private final EventParticipantRepository eventParticipantRepository;
+    private final TeamRepository teamRepository;
+    private final TeamMemberRepository teamMemberRepository;
 
-    // TODO: Validate team existence and membership after Team domain is implemented.
     public List<EventListResponse> getTeamEventList(
+            User user,
             Long teamId,
             Integer year,
             Integer month
     ) {
+        Team team = getTeam(teamId);
+        validateTeamMember(team, user);
         EventOccurrenceService.DateRange dateRange = eventOccurrenceService.createMonthlyDateRange(year, month);
 
-        List<Event> singleEvents = eventRepository.findByTeamIdAndEventKindAndStartAtBeforeAndEndAtAfter(
-                teamId,
+        List<Event> singleEvents = eventRepository.findByTeamAndEventKindAndStartAtBeforeAndEndAtAfter(
+                team,
                 EventKind.SINGLE,
                 dateRange.endAt(),
                 dateRange.startAt()
         );
-        List<Event> recurringEvents = eventRepository.findByTeamIdAndEventKindAndStartAtBefore(
-                teamId,
+        List<Event> recurringEvents = eventRepository.findByTeamAndEventKindAndStartAtBefore(
+                team,
                 EventKind.RECURRING,
                 dateRange.endAt()
         );
@@ -66,10 +76,11 @@ public class TeamEventService {
             Long teamId,
             TeamEventCreateRequest request
     ) {
-        // TODO: Validate team existence and creator membership after Team domain is implemented.
-        Event event = eventRepository.save(Event.create(teamId, request));
+        Team team = getTeam(teamId);
+        TeamMember host = validateTeamMember(team, user);
+        Event event = eventRepository.save(Event.create(team, request));
         RecurrenceRule recurrenceRule = eventRecurrenceService.createRecurrenceRule(event, request);
-        createParticipants(event, request);
+        createParticipants(event, team, host, request);
 
         return EventDetailResponse.create(event, recurrenceRule);
     }
@@ -81,10 +92,10 @@ public class TeamEventService {
             Long eventId,
             TeamEventUpdateRequest request
     ) {
-        // TODO: Validate team existence and user membership after Team domain is implemented.
         Event event = getTeamEvent(teamId, eventId);
+        validateEventManager(event.getTeam(), user, event);
 
-        return eventRecurrenceService.updateEvent(event, event.getTeamId(), request);
+        return eventRecurrenceService.updateEvent(event, event.getTeam(), request);
     }
 
     @Transactional
@@ -95,32 +106,36 @@ public class TeamEventService {
             RecurrenceEditScope recurrenceEditScope,
             LocalDateTime occurrenceAt
     ) {
-        // TODO: Validate team existence and user membership after Team domain is implemented.
         Event event = getTeamEvent(teamId, eventId);
+        validateEventManager(event.getTeam(), user, event);
 
         if (eventRecurrenceService.deleteEvent(event, recurrenceEditScope, occurrenceAt)) {
-            eventParticipantRepository.deleteByEventId(event.getEventId());
+            eventParticipantRepository.deleteByEvent_EventId(event.getEventId());
             eventRepository.delete(event);
         }
     }
 
     private void createParticipants(
             Event event,
+            Team team,
+            TeamMember host,
             TeamEventCreateRequest request
     ) {
-        if (request.getParticipants() == null || request.getParticipants().isEmpty()) {
-            return;
-        }
+        List<EventParticipant> participants = new ArrayList<>();
+        participants.add(EventParticipant.create(event, host, EventRole.HOST));
 
-        List<EventParticipant> participants = request.getParticipants().stream()
-                .filter(Objects::nonNull)
-                .distinct()
-                .map(teamMemberId -> EventParticipant.create(
-                        event.getEventId(),
-                        teamMemberId,
-                        EventRole.PARTICIPANT
-                ))
-                .toList();
+        if (request.getParticipants() != null && !request.getParticipants().isEmpty()) {
+            request.getParticipants().stream()
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .filter(teamMemberId -> !teamMemberId.equals(host.getTeamMemberId()))
+                    .map(teamMemberId -> EventParticipant.create(
+                            event,
+                            getTeamMember(team, teamMemberId),
+                            EventRole.PARTICIPANT
+                    ))
+                    .forEach(participants::add);
+        }
 
         eventParticipantRepository.saveAll(participants);
     }
@@ -137,5 +152,49 @@ public class TeamEventService {
         }
 
         return event;
+    }
+
+    private Team getTeam(
+            Long teamId
+    ) {
+        return teamRepository.findById(teamId)
+                .orElseThrow(() -> new RestApiException(CustomErrorCode.TEAM_NOT_FOUND));
+    }
+
+    private TeamMember getTeamMember(
+            Team team,
+            Long teamMemberId
+    ) {
+        TeamMember teamMember = teamMemberRepository.findById(teamMemberId)
+                .orElseThrow(() -> new RestApiException(CustomErrorCode.TEAM_MEMBER_NOT_FOUND));
+
+        if (!team.getTeamId().equals(teamMember.getTeam().getTeamId())) {
+            throw new RestApiException(CustomErrorCode.COMMON_INVALID_REQUEST);
+        }
+
+        return teamMember;
+    }
+
+    private TeamMember validateTeamMember(
+            Team team,
+            User user
+    ) {
+        return teamMemberRepository.findByTeamAndUser(team, user)
+                .orElseThrow(() -> new RestApiException(CustomErrorCode.TEAM_MEMBER_NOT_FOUND));
+    }
+
+    private void validateEventManager(
+            Team team,
+            User user,
+            Event event
+    ) {
+        TeamMember teamMember = validateTeamMember(team, user);
+        if (event.getCreatedBy().equals(user.getUserId())
+                || teamMember.getTeamRole() == TeamRole.LEADER
+                || teamMember.getTeamRole() == TeamRole.MANAGER) {
+            return;
+        }
+
+        throw new RestApiException(CustomErrorCode.TEAM_FORBIDDEN);
     }
 }

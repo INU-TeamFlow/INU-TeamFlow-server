@@ -5,6 +5,7 @@ import com.inuteamflow.server.domain.event.dto.EventUpdateCommand;
 import com.inuteamflow.server.domain.event.dto.Recurrence;
 import com.inuteamflow.server.domain.event.enums.EventKind;
 import com.inuteamflow.server.domain.event.enums.EventStatus;
+import com.inuteamflow.server.domain.team.entity.Team;
 import com.inuteamflow.server.global.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -26,8 +27,9 @@ public class Event extends BaseEntity {
     @Column(name = "event_id")
     private Long eventId;
 
-    @Column(name = "team_id")
-    private Long teamId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "team_id")
+    private Team team;
 
     @Column(name = "title")
     private String title;
@@ -63,7 +65,7 @@ public class Event extends BaseEntity {
 
     @Builder
     private Event(
-            Long teamId,
+            Team team,
             String title,
             String description,
             LocalDateTime startAt,
@@ -75,7 +77,7 @@ public class Event extends BaseEntity {
             EventStatus status,
             EventKind eventKind
     ) {
-        this.teamId = teamId;
+        this.team = team;
         this.title = title;
         this.description = description;
         this.startAt = startAt;
@@ -106,11 +108,11 @@ public class Event extends BaseEntity {
     }
 
     public static Event create(
-            Long teamId,
+            Team team,
             EventCreateCommand command
     ) {
         return Event.builder()
-                .teamId(teamId)
+                .team(team)
                 .title(command.getTitle())
                 .description(command.getDescription())
                 .startAt(command.getStartAt())
@@ -142,11 +144,11 @@ public class Event extends BaseEntity {
     }
 
     public static Event createRecurring(
-            Long teamId,
+            Team team,
             EventUpdateCommand command
     ) {
         return Event.builder()
-                .teamId(teamId)
+                .team(team)
                 .title(command.getTitle())
                 .description(command.getDescription())
                 .startAt(command.getStartAt())
@@ -178,6 +180,10 @@ public class Event extends BaseEntity {
 
     public void increaseSequence() {
         this.sequence++;
+    }
+
+    public Long getTeamId() {
+        return team == null ? null : team.getTeamId();
     }
 
     private static EventKind resolveEventKind(Recurrence recurrence) {

@@ -25,8 +25,9 @@ public class RecurrenceException extends BaseTimeEntity {
     @Column(name = "recurrence_exception_id")
     private Long recurrenceExceptionId;
 
-    @Column(name = "event_id")
-    private Long eventId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "event_id", nullable = false)
+    private Event event;
 
     @Column(name = "original_occurrence_at")
     private LocalDateTime originalOccurrenceAt;
@@ -55,7 +56,7 @@ public class RecurrenceException extends BaseTimeEntity {
 
     @Builder
     private RecurrenceException(
-            Long eventId,
+            Event event,
             LocalDateTime originalOccurrenceAt,
             RecurrenceExceptionType exceptionType,
             String modifiedTitle,
@@ -65,7 +66,7 @@ public class RecurrenceException extends BaseTimeEntity {
             String modifiedColor,
             Boolean modifiedAllDay
     ) {
-        this.eventId = eventId;
+        this.event = event;
         this.originalOccurrenceAt = originalOccurrenceAt;
         this.exceptionType = exceptionType;
         this.modifiedTitle = modifiedTitle;
@@ -77,11 +78,11 @@ public class RecurrenceException extends BaseTimeEntity {
     }
 
     public static RecurrenceException createModified(
-            Long eventId,
+            Event event,
             EventUpdateCommand command
     ) {
         return RecurrenceException.builder()
-                .eventId(eventId)
+                .event(event)
                 .originalOccurrenceAt(command.getOccurrenceAt())
                 .exceptionType(RecurrenceExceptionType.MODIFIED)
                 .modifiedTitle(command.getTitle())
@@ -94,14 +95,18 @@ public class RecurrenceException extends BaseTimeEntity {
     }
 
     public static RecurrenceException createCancelled(
-            Long eventId,
+            Event event,
             LocalDateTime originalOccurrenceAt
     ) {
         return RecurrenceException.builder()
-                .eventId(eventId)
+                .event(event)
                 .originalOccurrenceAt(originalOccurrenceAt)
                 .exceptionType(RecurrenceExceptionType.CANCELLED)
                 .build();
+    }
+
+    public Long getEventId() {
+        return event.getEventId();
     }
 
     public void update(
