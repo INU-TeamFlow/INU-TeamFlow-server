@@ -24,7 +24,12 @@ public enum CustomErrorCode implements ErrorCode {
 
     // 요청 관련 에러
     COMMON_INVALID_REQUEST(HttpStatus.BAD_REQUEST, 400, ""),
-    COMMON_HANDLER_NOT_FOUND(HttpStatus.NOT_FOUND, 404, "");
+    COMMON_HANDLER_NOT_FOUND(HttpStatus.NOT_FOUND, 404, ""),
+
+    // 팀 관련 에러
+    TEAM_NOT_FOUND(HttpStatus.NOT_FOUND, 404, ""),
+    TEAM_MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, 404, ""),
+    TEAM_FORBIDDEN(HttpStatus.FORBIDDEN, 403, "");
 
     private final HttpStatus httpStatus;
     private final Integer code;
