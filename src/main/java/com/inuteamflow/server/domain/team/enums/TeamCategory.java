@@ -4,5 +4,6 @@ public enum TeamCategory {
     CONTEST,
     STUDY,
     CLUB,
-    PROJECT
+    PROJECT,
+    ETC
 }

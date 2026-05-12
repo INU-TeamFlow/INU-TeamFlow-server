@@ -12,6 +12,7 @@ import com.inuteamflow.server.domain.team.repository.TeamMemberRepository;
 import com.inuteamflow.server.domain.team.repository.TeamRepository;
 import com.inuteamflow.server.domain.user.entity.User;
 import com.inuteamflow.server.domain.user.entity.UserDetailsImpl;
+import com.inuteamflow.server.domain.user.repository.UserRepository;
 import com.inuteamflow.server.global.exception.error.CustomErrorCode;
 import com.inuteamflow.server.global.exception.error.RestApiException;
 import com.inuteamflow.server.global.s3.PresignedUrlRequest;
@@ -32,6 +33,7 @@ public class TeamService {
     private final TeamRepository teamRepository;
     private final TeamMemberRepository teamMemberRepository;
     private final S3Service s3Service;
+    private final UserRepository userRepository;
 
     // 팀 리스트 조회 (내가 속한 팀)
     public List<TeamSummaryResponse> getMyTeams(UserDetailsImpl userDetails) {
@@ -78,13 +80,42 @@ public class TeamService {
                 .toList();
     }
 
+    // 팀 매니저 지정, 해제
+    @Transactional
+    public void updateMemberRole(UserDetailsImpl userDetails, Long teamId, Long targetMemberId, TeamRole newRole) {
+
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new RestApiException(CustomErrorCode.TEAM_NOT_FOUND));
+
+        TeamMember requester = teamMemberRepository.findByTeamAndUser(team, userDetails.getUser())
+                .orElseThrow(() -> new RestApiException(CustomErrorCode.TEAM_MEMBER_NOT_FOUND));
+
+        if (requester.getTeamRole() != TeamRole.LEADER) {
+            throw new RestApiException(CustomErrorCode.TEAM_FORBIDDEN);
+        }
+
+        TeamMember targetMember = teamMemberRepository.findById(targetMemberId)
+                .orElseThrow(() -> new RestApiException(CustomErrorCode.TEAM_MEMBER_NOT_FOUND));
+
+        if (!targetMember.getTeam().getTeamId().equals(teamId)) {
+            throw new RestApiException(CustomErrorCode.TEAM_MEMBER_NOT_FOUND);
+        }
+
+        // 이미 같은 역할
+        if (targetMember.getTeamRole() == newRole) {
+            throw new RestApiException(CustomErrorCode.TEAM_MEMBER_ALREADY_ROLE);
+        }
+
+        targetMember.updateRole(newRole);
+    }
+
     // 팀 생성
     @Transactional
     public TeamDetailResponse createTeam(UserDetailsImpl userDetails, TeamCreateRequest request) {
 
         User creator = userDetails.getUser();
 
-        Team team = Team.create(request, creator);
+        Team team = Team.create(request);
         teamRepository.save(team);
 
         // 팀 생성자를 Leader 로 TeamMember 에 추가

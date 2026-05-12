@@ -1,6 +1,7 @@
 package com.inuteamflow.server.domain.team.controller;
 
 import com.inuteamflow.server.domain.team.dto.request.TeamCreateRequest;
+import com.inuteamflow.server.domain.team.dto.request.TeamMemberRoleRequest;
 import com.inuteamflow.server.domain.team.dto.request.TeamUpdateRequest;
 import com.inuteamflow.server.domain.team.dto.response.TeamDetailResponse;
 import com.inuteamflow.server.domain.team.dto.response.TeamMemberResponse;
@@ -44,6 +45,18 @@ public class TeamController {
     ) {
         return ApiResponse.ok(teamService.getTeamMembers(teamId, userDetails));
     }
+
+    @PatchMapping("/{teamId}/members/{memberId}/role")
+    public ApiResponse<String> updateMemberRole(
+            @PathVariable Long teamId,
+            @PathVariable Long memberId,
+            @RequestBody TeamMemberRoleRequest request,
+            @AuthenticationPrincipal UserDetailsImpl userDetails
+    ) {
+        teamService.updateMemberRole(userDetails, teamId, memberId, request.getTeamRole());
+        return ApiResponse.ok("변경 되었습니다.");
+    }
+
 
     @PostMapping
     public ApiResponse<TeamDetailResponse> createTeam(

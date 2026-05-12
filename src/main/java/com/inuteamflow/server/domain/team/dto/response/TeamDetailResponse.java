@@ -3,6 +3,7 @@ package com.inuteamflow.server.domain.team.dto.response;
 import com.inuteamflow.server.domain.team.entity.Team;
 import com.inuteamflow.server.domain.team.entity.TeamMember;
 import com.inuteamflow.server.domain.team.enums.TeamCategory;
+import com.inuteamflow.server.domain.team.enums.TeamRole;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -23,6 +24,8 @@ public class TeamDetailResponse {
 
     private Integer memberCount;
 
+    private TeamRole role;
+
     private String link;
 
     private String sns;
@@ -42,6 +45,7 @@ public class TeamDetailResponse {
                 team.getCategory(),
                 team.getDescription(),
                 memberCount,
+                teamMember.getTeamRole(),
                 team.getLink(),
                 team.getSns(),
                 imageUrl,
