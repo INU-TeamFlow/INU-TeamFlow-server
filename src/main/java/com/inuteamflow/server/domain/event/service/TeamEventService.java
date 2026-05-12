@@ -76,7 +76,7 @@ public class TeamEventService {
             TeamEventCreateRequest request
     ) {
         Team team = getTeam(teamId);
-        TeamMember host = validateTeamMember(team, user);
+        TeamMember host = validateTeamEventManager(team, user);
         Event event = eventRepository.save(Event.create(team, request));
         RecurrenceRule recurrenceRule = eventRecurrenceService.createRecurrenceRule(event, request);
         createParticipants(event, team, host, request.getParticipants());
@@ -92,7 +92,7 @@ public class TeamEventService {
             TeamEventUpdateRequest request
     ) {
         Event event = getTeamEvent(teamId, eventId);
-        validateEventManager(event.getTeam(), user, event);
+        validateTeamEventManager(event.getTeam(), user);
 
         EventDetailResponse response = eventRecurrenceService.updateEvent(event, event.getTeam(), request);
         syncParticipants(response.getEventId(), event.getTeam(), request.getParticipants());
@@ -109,7 +109,7 @@ public class TeamEventService {
             LocalDateTime occurrenceAt
     ) {
         Event event = getTeamEvent(teamId, eventId);
-        validateEventManager(event.getTeam(), user, event);
+        validateTeamEventManager(event.getTeam(), user);
 
         if (eventRecurrenceService.deleteEvent(event, recurrenceEditScope, occurrenceAt)) {
             eventParticipantRepository.deleteByEvent_EventId(event.getEventId());
@@ -201,16 +201,14 @@ public class TeamEventService {
                 .orElseThrow(() -> new RestApiException(CustomErrorCode.TEAM_MEMBER_NOT_FOUND));
     }
 
-    private void validateEventManager(
+    private TeamMember validateTeamEventManager(
             Team team,
-            User user,
-            Event event
+            User user
     ) {
         TeamMember teamMember = validateTeamMember(team, user);
-        if (event.getCreatedBy().equals(user.getUserId())
-                || teamMember.getTeamRole() == TeamRole.LEADER
+        if (teamMember.getTeamRole() == TeamRole.LEADER
                 || teamMember.getTeamRole() == TeamRole.MANAGER) {
-            return;
+            return teamMember;
         }
 
         throw new RestApiException(CustomErrorCode.TEAM_FORBIDDEN);
