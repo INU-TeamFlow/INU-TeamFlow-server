@@ -1,6 +1,7 @@
 package com.inuteamflow.server.domain.event.entity;
 
 import com.inuteamflow.server.domain.event.dto.EventUpdateCommand;
+import com.inuteamflow.server.domain.event.enums.EventColor;
 import com.inuteamflow.server.domain.event.enums.RecurrenceExceptionType;
 import com.inuteamflow.server.global.BaseTimeEntity;
 import jakarta.persistence.*;
@@ -25,8 +26,9 @@ public class RecurrenceException extends BaseTimeEntity {
     @Column(name = "recurrence_exception_id")
     private Long recurrenceExceptionId;
 
-    @Column(name = "event_id")
-    private Long eventId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "event_id", nullable = false)
+    private Event event;
 
     @Column(name = "original_occurrence_at")
     private LocalDateTime originalOccurrenceAt;
@@ -48,24 +50,25 @@ public class RecurrenceException extends BaseTimeEntity {
     private LocalDateTime modifiedEndAt;
 
     @Column(name = "modified_color")
-    private String modifiedColor;
+    @Enumerated(EnumType.STRING)
+    private EventColor modifiedColor;
 
     @Column(name = "modified_is_all_day")
     private Boolean modifiedIsAllDay;
 
     @Builder
     private RecurrenceException(
-            Long eventId,
+            Event event,
             LocalDateTime originalOccurrenceAt,
             RecurrenceExceptionType exceptionType,
             String modifiedTitle,
             String modifiedDescription,
             LocalDateTime modifiedStartAt,
             LocalDateTime modifiedEndAt,
-            String modifiedColor,
+            EventColor modifiedColor,
             Boolean modifiedAllDay
     ) {
-        this.eventId = eventId;
+        this.event = event;
         this.originalOccurrenceAt = originalOccurrenceAt;
         this.exceptionType = exceptionType;
         this.modifiedTitle = modifiedTitle;
@@ -77,11 +80,11 @@ public class RecurrenceException extends BaseTimeEntity {
     }
 
     public static RecurrenceException createModified(
-            Long eventId,
+            Event event,
             EventUpdateCommand command
     ) {
         return RecurrenceException.builder()
-                .eventId(eventId)
+                .event(event)
                 .originalOccurrenceAt(command.getOccurrenceAt())
                 .exceptionType(RecurrenceExceptionType.MODIFIED)
                 .modifiedTitle(command.getTitle())
@@ -94,14 +97,18 @@ public class RecurrenceException extends BaseTimeEntity {
     }
 
     public static RecurrenceException createCancelled(
-            Long eventId,
+            Event event,
             LocalDateTime originalOccurrenceAt
     ) {
         return RecurrenceException.builder()
-                .eventId(eventId)
+                .event(event)
                 .originalOccurrenceAt(originalOccurrenceAt)
                 .exceptionType(RecurrenceExceptionType.CANCELLED)
                 .build();
+    }
+
+    public Long getEventId() {
+        return event.getEventId();
     }
 
     public void update(

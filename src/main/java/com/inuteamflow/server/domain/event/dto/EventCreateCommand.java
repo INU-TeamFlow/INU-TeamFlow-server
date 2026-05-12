@@ -1,5 +1,7 @@
 package com.inuteamflow.server.domain.event.dto;
 
+import com.inuteamflow.server.domain.event.enums.EventColor;
+
 import java.time.LocalDateTime;
 
 public interface EventCreateCommand {
@@ -14,7 +16,7 @@ public interface EventCreateCommand {
 
     Boolean getIsAllDay();
 
-    String getColor();
+    EventColor getColor();
 
     Recurrence getRecurrence();
 }

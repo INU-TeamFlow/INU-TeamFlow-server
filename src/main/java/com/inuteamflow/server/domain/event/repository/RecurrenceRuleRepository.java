@@ -9,9 +9,9 @@ import java.util.Optional;
 
 public interface RecurrenceRuleRepository extends JpaRepository<RecurrenceRule, Long> {
 
-    List<RecurrenceRule> findByEventIdIn(Collection<Long> eventIds);
+    List<RecurrenceRule> findByEvent_EventIdIn(Collection<Long> eventIds);
 
-    Optional<RecurrenceRule> findByEventId(Long eventId);
+    Optional<RecurrenceRule> findByEvent_EventId(Long eventId);
 
-    void deleteByEventId(Long eventId);
+    void deleteByEvent_EventId(Long eventId);
 }

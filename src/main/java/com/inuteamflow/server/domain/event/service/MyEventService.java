@@ -5,9 +5,10 @@ import com.inuteamflow.server.domain.event.dto.request.MyEventUpdateRequest;
 import com.inuteamflow.server.domain.event.dto.response.EventDetailResponse;
 import com.inuteamflow.server.domain.event.dto.response.EventListResponse;
 import com.inuteamflow.server.domain.event.entity.Event;
+import com.inuteamflow.server.domain.event.entity.EventParticipant;
 import com.inuteamflow.server.domain.event.entity.RecurrenceRule;
-import com.inuteamflow.server.domain.event.enums.EventKind;
 import com.inuteamflow.server.domain.event.enums.RecurrenceEditScope;
+import com.inuteamflow.server.domain.event.repository.EventParticipantRepository;
 import com.inuteamflow.server.domain.event.repository.EventRepository;
 import com.inuteamflow.server.domain.user.entity.User;
 import com.inuteamflow.server.global.exception.error.CustomErrorCode;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -27,8 +29,8 @@ public class MyEventService {
     private final EventOccurrenceService eventOccurrenceService;
     private final EventRecurrenceService eventRecurrenceService;
     private final EventRepository eventRepository;
+    private final EventParticipantRepository eventParticipantRepository;
 
-    // TODO: Include team events where this user participates after TeamMember is implemented.
     public List<EventListResponse> getMyEventList(
             User user,
             Integer year,
@@ -36,21 +38,46 @@ public class MyEventService {
     ) {
         EventOccurrenceService.DateRange dateRange = eventOccurrenceService.createMonthlyDateRange(year, month);
 
-        List<Event> singleEvents = eventRepository.findByCreatedByAndTeamIdIsNullAndEventKindAndStartAtBeforeAndEndAtAfter(
+        List<Event> singleEvents = new ArrayList<>(eventRepository.findByCreatedByAndTeamIsNullAndIsSingleAndStartAtBeforeAndEndAtAfter(
                 user.getUserId(),
-                EventKind.SINGLE,
+                true,
                 dateRange.endAt(),
                 dateRange.startAt()
-        );
-        List<Event> recurringEvents = eventRepository.findByCreatedByAndTeamIdIsNullAndEventKindAndStartAtBefore(
+        ));
+        List<Event> recurringEvents = eventRepository.findByCreatedByAndTeamIsNullAndIsSingleAndStartAtBefore(
                 user.getUserId(),
-                EventKind.RECURRING,
+                false,
                 dateRange.endAt()
         );
-        List<EventListResponse> recurringOccurrences = eventOccurrenceService.expandRecurringEvents(
+        List<EventListResponse> recurringOccurrences = new ArrayList<>(eventOccurrenceService.expandRecurringEvents(
                 recurringEvents,
                 dateRange
-        );
+        ));
+
+        List<Long> participatingEventIds = eventParticipantRepository.findByTeamMember_User(user).stream()
+                .map(EventParticipant::getEvent)
+                .map(Event::getEventId)
+                .distinct()
+                .toList();
+
+        if (!participatingEventIds.isEmpty()) {
+            singleEvents.addAll(eventRepository.findByEventIdInAndIsSingleAndStartAtBeforeAndEndAtAfter(
+                    participatingEventIds,
+                    true,
+                    dateRange.endAt(),
+                    dateRange.startAt()
+            ));
+
+            List<Event> participatingRecurringEvents = eventRepository.findByEventIdInAndIsSingleAndStartAtBefore(
+                    participatingEventIds,
+                    false,
+                    dateRange.endAt()
+            );
+            recurringOccurrences.addAll(eventOccurrenceService.expandRecurringEvents(
+                    participatingRecurringEvents,
+                    dateRange
+            ));
+        }
 
         return eventOccurrenceService.mergeAndSort(singleEvents, recurringOccurrences);
     }

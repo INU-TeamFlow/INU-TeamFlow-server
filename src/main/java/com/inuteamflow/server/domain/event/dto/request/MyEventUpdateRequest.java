@@ -2,7 +2,7 @@ package com.inuteamflow.server.domain.event.dto.request;
 
 import com.inuteamflow.server.domain.event.dto.Recurrence;
 import com.inuteamflow.server.domain.event.dto.EventUpdateCommand;
-import com.inuteamflow.server.domain.event.enums.EventStatus;
+import com.inuteamflow.server.domain.event.enums.EventColor;
 import com.inuteamflow.server.domain.event.enums.RecurrenceEditScope;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
@@ -32,9 +32,10 @@ public class MyEventUpdateRequest implements EventUpdateCommand {
     @NotNull
     private Boolean isAllDay;
 
-    private String color;
+    @NotNull
+    private EventColor color;
 
-    private EventStatus status;
+    private Boolean isFinished;
 
     private RecurrenceEditScope recurrenceEditScope;
 

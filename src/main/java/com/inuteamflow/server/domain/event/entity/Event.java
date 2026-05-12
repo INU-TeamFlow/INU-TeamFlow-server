@@ -3,8 +3,8 @@ package com.inuteamflow.server.domain.event.entity;
 import com.inuteamflow.server.domain.event.dto.EventCreateCommand;
 import com.inuteamflow.server.domain.event.dto.EventUpdateCommand;
 import com.inuteamflow.server.domain.event.dto.Recurrence;
-import com.inuteamflow.server.domain.event.enums.EventKind;
-import com.inuteamflow.server.domain.event.enums.EventStatus;
+import com.inuteamflow.server.domain.event.enums.EventColor;
+import com.inuteamflow.server.domain.team.entity.Team;
 import com.inuteamflow.server.global.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -26,8 +26,9 @@ public class Event extends BaseEntity {
     @Column(name = "event_id")
     private Long eventId;
 
-    @Column(name = "team_id")
-    private Long teamId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "team_id")
+    private Team team;
 
     @Column(name = "title")
     private String title;
@@ -45,7 +46,8 @@ public class Event extends BaseEntity {
     private Boolean isAllDay;
 
     @Column(name = "color")
-    private String color;
+    @Enumerated(EnumType.STRING)
+    private EventColor color;
 
     @Column(name = "uid")
     private String uid;
@@ -53,29 +55,27 @@ public class Event extends BaseEntity {
     @Column(name = "sequence")
     private Integer sequence;
 
-    @Column(name = "status")
-    @Enumerated(EnumType.STRING)
-    private EventStatus status;
+    @Column(name = "is_finished")
+    private Boolean isFinished;
 
-    @Column(name = "event_kind")
-    @Enumerated(EnumType.STRING)
-    private EventKind eventKind;
+    @Column(name = "is_single")
+    private Boolean isSingle;
 
     @Builder
     private Event(
-            Long teamId,
+            Team team,
             String title,
             String description,
             LocalDateTime startAt,
             LocalDateTime endAt,
             Boolean isAllDay,
-            String color,
+            EventColor color,
             String uid,
             Integer sequence,
-            EventStatus status,
-            EventKind eventKind
+            Boolean isFinished,
+            Boolean isSingle
     ) {
-        this.teamId = teamId;
+        this.team = team;
         this.title = title;
         this.description = description;
         this.startAt = startAt;
@@ -84,8 +84,8 @@ public class Event extends BaseEntity {
         this.color = color;
         this.uid = uid;
         this.sequence = sequence;
-        this.status = status;
-        this.eventKind = eventKind;
+        this.isFinished = isFinished;
+        this.isSingle = isSingle;
     }
 
     public static Event create(
@@ -100,17 +100,17 @@ public class Event extends BaseEntity {
                 .color(command.getColor())
                 .uid(UUID.randomUUID().toString())
                 .sequence(0)
-                .status(EventStatus.UNFINISHED)
-                .eventKind(resolveEventKind(command.getRecurrence()))
+                .isFinished(false)
+                .isSingle(resolveIsSingle(command.getRecurrence()))
                 .build();
     }
 
     public static Event create(
-            Long teamId,
+            Team team,
             EventCreateCommand command
     ) {
         return Event.builder()
-                .teamId(teamId)
+                .team(team)
                 .title(command.getTitle())
                 .description(command.getDescription())
                 .startAt(command.getStartAt())
@@ -119,8 +119,8 @@ public class Event extends BaseEntity {
                 .color(command.getColor())
                 .uid(UUID.randomUUID().toString())
                 .sequence(0)
-                .status(EventStatus.UNFINISHED)
-                .eventKind(resolveEventKind(command.getRecurrence()))
+                .isFinished(false)
+                .isSingle(resolveIsSingle(command.getRecurrence()))
                 .build();
     }
 
@@ -136,17 +136,17 @@ public class Event extends BaseEntity {
                 .color(command.getColor())
                 .uid(UUID.randomUUID().toString())
                 .sequence(0)
-                .status(command.getStatus() != null ? command.getStatus() : EventStatus.UNFINISHED)
-                .eventKind(EventKind.RECURRING)
+                .isFinished(command.getIsFinished() != null ? command.getIsFinished() : false)
+                .isSingle(false)
                 .build();
     }
 
     public static Event createRecurring(
-            Long teamId,
+            Team team,
             EventUpdateCommand command
     ) {
         return Event.builder()
-                .teamId(teamId)
+                .team(team)
                 .title(command.getTitle())
                 .description(command.getDescription())
                 .startAt(command.getStartAt())
@@ -155,8 +155,8 @@ public class Event extends BaseEntity {
                 .color(command.getColor())
                 .uid(UUID.randomUUID().toString())
                 .sequence(0)
-                .status(command.getStatus() != null ? command.getStatus() : EventStatus.UNFINISHED)
-                .eventKind(EventKind.RECURRING)
+                .isFinished(command.getIsFinished() != null ? command.getIsFinished() : false)
+                .isSingle(false)
                 .build();
     }
 
@@ -167,21 +167,25 @@ public class Event extends BaseEntity {
         this.endAt = command.getEndAt();
         this.isAllDay = command.getIsAllDay();
         this.color = command.getColor();
-        if (command.getStatus() != null) {
-            this.status = command.getStatus();
+        if (command.getIsFinished() != null) {
+            this.isFinished = command.getIsFinished();
         }
     }
 
     public void changeToRecurring() {
-        this.eventKind = EventKind.RECURRING;
+        this.isSingle = false;
     }
 
     public void increaseSequence() {
         this.sequence++;
     }
 
-    private static EventKind resolveEventKind(Recurrence recurrence) {
-        return recurrence == null ? EventKind.SINGLE : EventKind.RECURRING;
+    public Long getTeamId() {
+        return team == null ? null : team.getTeamId();
+    }
+
+    private static Boolean resolveIsSingle(Recurrence recurrence) {
+        return recurrence == null;
     }
 
 

@@ -1,6 +1,7 @@
 package com.inuteamflow.server.domain.event.entity;
 
 import com.inuteamflow.server.domain.event.enums.EventRole;
+import com.inuteamflow.server.domain.team.entity.TeamMember;
 import com.inuteamflow.server.global.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -22,11 +23,13 @@ public class EventParticipant extends BaseTimeEntity {
     @Column(name = "event_participant_id")
     private Long eventParticipantId;
 
-    @Column(name = "event_id", nullable = false)
-    private Long eventId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "event_id", nullable = false)
+    private Event event;
 
-    @Column(name = "team_member_id", nullable = false)
-    private Long teamMemberId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "team_member_id", nullable = false)
+    private TeamMember teamMember;
 
     @Column(name = "event_role")
     @Enumerated(EnumType.STRING)
@@ -34,24 +37,28 @@ public class EventParticipant extends BaseTimeEntity {
 
     @Builder
     private EventParticipant(
-            Long eventId,
-            Long teamMemberId,
+            Event event,
+            TeamMember teamMember,
             EventRole eventRole
     ) {
-        this.eventId = eventId;
-        this.teamMemberId = teamMemberId;
+        this.event = event;
+        this.teamMember = teamMember;
         this.eventRole = eventRole;
     }
 
     public static EventParticipant create(
-            Long eventId,
-            Long teamMemberId,
+            Event event,
+            TeamMember teamMember,
             EventRole eventRole
     ) {
         return EventParticipant.builder()
-                .eventId(eventId)
-                .teamMemberId(teamMemberId)
+                .event(event)
+                .teamMember(teamMember)
                 .eventRole(eventRole)
                 .build();
+    }
+
+    public Long getTeamMemberId() {
+        return teamMember.getTeamMemberId();
     }
 }

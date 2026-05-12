@@ -60,10 +60,10 @@ public class EventOccurrenceService {
         List<Long> eventIds = recurringEvents.stream()
                 .map(Event::getEventId)
                 .toList();
-        Map<Long, RecurrenceRule> ruleByEventId = recurrenceRuleRepository.findByEventIdIn(eventIds).stream()
+        Map<Long, RecurrenceRule> ruleByEventId = recurrenceRuleRepository.findByEvent_EventIdIn(eventIds).stream()
                 .collect(Collectors.toMap(RecurrenceRule::getEventId, Function.identity()));
         Map<EventOccurrenceService.OccurrenceKey, RecurrenceException> exceptionByKey =
-                recurrenceExceptionRepository.findByEventIdIn(eventIds).stream()
+                recurrenceExceptionRepository.findByEvent_EventIdIn(eventIds).stream()
                         .collect(Collectors.toMap(
                                 exception -> new EventOccurrenceService.OccurrenceKey(
                                         exception.getEventId(),
@@ -261,11 +261,11 @@ public class EventOccurrenceService {
                 ? rule.getSeriesStartAt()
                 : event.getStartAt();
 
-        if (rule.getFreq() != RecurrenceFrequency.WEEKLY || rule.getByDay() == null) {
+        if (rule.getFreq() != RecurrenceFrequency.WEEKLY || sortedByDays(rule).isEmpty()) {
             return seriesStartAt;
         }
 
-        return moveToDayOfWeek(seriesStartAt, rule.getByDay());
+        return firstWeeklyOccurrenceAt(seriesStartAt, rule);
     }
 
     private LocalDateTime nextWeeklyOccurrenceAt(
@@ -273,11 +273,39 @@ public class EventOccurrenceService {
             int interval,
             RecurrenceRule rule
     ) {
-        if (rule.getByDay() == null) {
+        List<DayOfWeek> byDays = sortedByDays(rule);
+        if (byDays.isEmpty()) {
             return occurrenceAt.plusWeeks(interval);
         }
 
-        return moveToDayOfWeek(occurrenceAt.plusWeeks(interval), rule.getByDay());
+        DayOfWeek currentDay = occurrenceAt.getDayOfWeek();
+        return byDays.stream()
+                .filter(dayOfWeek -> dayOfWeek.getValue() > currentDay.getValue())
+                .findFirst()
+                .map(nextDay -> moveToDayOfWeek(occurrenceAt, nextDay))
+                .orElseGet(() -> moveToDayOfWeek(
+                        occurrenceAt.plusWeeks(interval).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)),
+                        byDays.get(0)
+                ));
+    }
+
+    private LocalDateTime firstWeeklyOccurrenceAt(
+            LocalDateTime seriesStartAt,
+            RecurrenceRule rule
+    ) {
+        return sortedByDays(rule).stream()
+                .map(dayOfWeek -> moveToDayOfWeek(seriesStartAt, dayOfWeek))
+                .min(Comparator.naturalOrder())
+                .orElse(seriesStartAt);
+    }
+
+    private List<DayOfWeek> sortedByDays(
+            RecurrenceRule rule
+    ) {
+        return rule.getByDay().stream()
+                .distinct()
+                .sorted(Comparator.comparingInt(DayOfWeek::getValue))
+                .toList();
     }
 
     private LocalDateTime moveToDayOfWeek(

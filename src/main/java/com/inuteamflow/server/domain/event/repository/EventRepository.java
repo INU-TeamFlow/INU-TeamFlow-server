@@ -1,7 +1,7 @@
 package com.inuteamflow.server.domain.event.repository;
 
 import com.inuteamflow.server.domain.event.entity.Event;
-import com.inuteamflow.server.domain.event.enums.EventKind;
+import com.inuteamflow.server.domain.team.entity.Team;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDateTime;
@@ -10,42 +10,42 @@ import java.util.List;
 
 public interface EventRepository extends JpaRepository<Event, Long> {
 
-    List<Event> findByEventIdInAndEventKindAndStartAtBeforeAndEndAtAfter(
+    List<Event> findByEventIdInAndIsSingleAndStartAtBeforeAndEndAtAfter(
             Collection<Long> eventIds,
-            EventKind eventKind,
+            Boolean isSingle,
             LocalDateTime endAt,
             LocalDateTime startAt
     );
 
-    List<Event> findByEventIdInAndEventKindAndStartAtBefore(
+    List<Event> findByEventIdInAndIsSingleAndStartAtBefore(
             Collection<Long> eventIds,
-            EventKind eventKind,
+            Boolean isSingle,
             LocalDateTime endAt
     );
 
-    List<Event> findByCreatedByAndTeamIdIsNullAndEventKindAndStartAtBeforeAndEndAtAfter(
+    List<Event> findByCreatedByAndTeamIsNullAndIsSingleAndStartAtBeforeAndEndAtAfter(
             Long createdBy,
-            EventKind eventKind,
+            Boolean isSingle,
             LocalDateTime endAt,
             LocalDateTime startAt
     );
 
-    List<Event> findByCreatedByAndTeamIdIsNullAndEventKindAndStartAtBefore(
+    List<Event> findByCreatedByAndTeamIsNullAndIsSingleAndStartAtBefore(
             Long createdBy,
-            EventKind eventKind,
+            Boolean isSingle,
             LocalDateTime endAt
     );
 
-    List<Event> findByTeamIdAndEventKindAndStartAtBeforeAndEndAtAfter(
-            Long teamId,
-            EventKind eventKind,
+    List<Event> findByTeamAndIsSingleAndStartAtBeforeAndEndAtAfter(
+            Team team,
+            Boolean isSingle,
             LocalDateTime endAt,
             LocalDateTime startAt
     );
 
-    List<Event> findByTeamIdAndEventKindAndStartAtBefore(
-            Long teamId,
-            EventKind eventKind,
+    List<Event> findByTeamAndIsSingleAndStartAtBefore(
+            Team team,
+            Boolean isSingle,
             LocalDateTime endAt
     );
 }

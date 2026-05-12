@@ -7,12 +7,12 @@ import com.inuteamflow.server.domain.event.entity.Event;
 import com.inuteamflow.server.domain.event.entity.EventParticipant;
 import com.inuteamflow.server.domain.event.entity.RecurrenceException;
 import com.inuteamflow.server.domain.event.entity.RecurrenceRule;
-import com.inuteamflow.server.domain.event.enums.EventKind;
 import com.inuteamflow.server.domain.event.enums.RecurrenceEditScope;
 import com.inuteamflow.server.domain.event.repository.EventParticipantRepository;
 import com.inuteamflow.server.domain.event.repository.EventRepository;
 import com.inuteamflow.server.domain.event.repository.RecurrenceExceptionRepository;
 import com.inuteamflow.server.domain.event.repository.RecurrenceRuleRepository;
+import com.inuteamflow.server.domain.team.entity.Team;
 import com.inuteamflow.server.global.exception.error.CustomErrorCode;
 import com.inuteamflow.server.global.exception.error.RestApiException;
 import lombok.RequiredArgsConstructor;
@@ -40,7 +40,7 @@ public class EventRecurrenceService {
         }
 
         return recurrenceRuleRepository.save(RecurrenceRule.create(
-                event.getEventId(),
+                event,
                 command.getRecurrence(),
                 event.getStartAt()
         ));
@@ -55,7 +55,7 @@ public class EventRecurrenceService {
         }
 
         return recurrenceRuleRepository.save(RecurrenceRule.create(
-                event.getEventId(),
+                event,
                 command.getRecurrence(),
                 event.getStartAt()
         ));
@@ -63,12 +63,12 @@ public class EventRecurrenceService {
 
     public EventDetailResponse updateEvent(
             Event event,
-            Long teamId,
+            Team team,
             EventUpdateCommand command
     ) {
         event.increaseSequence();
 
-        if (event.getEventKind() == EventKind.SINGLE) {
+        if (Boolean.TRUE.equals(event.getIsSingle())) {
             return updateSingleEvent(event, command);
         }
         validateRecurrenceRequired(command);
@@ -88,7 +88,7 @@ public class EventRecurrenceService {
                 yield EventDetailResponse.createModifiedOccurrence(event, recurrenceRule, recurrenceException);
             }
             case THIS_AND_FOLLOWING -> {
-                FollowingSeries followingSeries = updateThisAndFollowing(event, teamId, command);
+                FollowingSeries followingSeries = updateThisAndFollowing(event, team, command);
                 yield EventDetailResponse.create(followingSeries.event(), followingSeries.recurrenceRule());
             }
         };
@@ -117,7 +117,7 @@ public class EventRecurrenceService {
 
         event.update(command);
         recurrenceRule.update(command.getRecurrence(), event.getStartAt());
-        recurrenceExceptionRepository.deleteByEventId(event.getEventId());
+        recurrenceExceptionRepository.deleteByEvent_EventId(event.getEventId());
 
         return recurrenceRule;
     }
@@ -130,9 +130,9 @@ public class EventRecurrenceService {
         validateOccurrence(event, recurrenceRule, command.getOccurrenceAt());
 
         RecurrenceException recurrenceException = recurrenceExceptionRepository
-                .findByEventIdAndOriginalOccurrenceAt(event.getEventId(), command.getOccurrenceAt())
+                .findByEvent_EventIdAndOriginalOccurrenceAt(event.getEventId(), command.getOccurrenceAt())
                 .orElseGet(() -> recurrenceExceptionRepository.save(
-                        RecurrenceException.createModified(event.getEventId(), command)
+                        RecurrenceException.createModified(event, command)
                 ));
         recurrenceException.update(command);
 
@@ -141,24 +141,24 @@ public class EventRecurrenceService {
 
     private FollowingSeries updateThisAndFollowing(
             Event event,
-            Long teamId,
+            Team team,
             EventUpdateCommand command
     ) {
         RecurrenceRule recurrenceRule = getRecurrenceRule(event);
         validateOccurrence(event, recurrenceRule, command.getOccurrenceAt());
 
         recurrenceRule.finishBefore(command.getOccurrenceAt());
-        recurrenceExceptionRepository.deleteByEventIdAndOriginalOccurrenceAtGreaterThanEqual(
+        recurrenceExceptionRepository.deleteByEvent_EventIdAndOriginalOccurrenceAtGreaterThanEqual(
                 event.getEventId(),
                 command.getOccurrenceAt()
         );
 
-        Event followingEvent = teamId == null
+        Event followingEvent = team == null
                 ? eventRepository.save(Event.createRecurring(command))
-                : eventRepository.save(Event.createRecurring(teamId, command));
+                : eventRepository.save(Event.createRecurring(team, command));
         copyParticipants(event, followingEvent);
         RecurrenceRule followingRule = recurrenceRuleRepository.save(RecurrenceRule.create(
-                followingEvent.getEventId(),
+                followingEvent,
                 command.getRecurrence(),
                 followingEvent.getStartAt()
         ));
@@ -175,11 +175,11 @@ public class EventRecurrenceService {
         }
 
         List<EventParticipant> copiedParticipants = eventParticipantRepository
-                .findByEventId(originalEvent.getEventId())
+                .findByEvent_EventId(originalEvent.getEventId())
                 .stream()
                 .map(participant -> EventParticipant.create(
-                        followingEvent.getEventId(),
-                        participant.getTeamMemberId(),
+                        followingEvent,
+                        participant.getTeamMember(),
                         participant.getEventRole()
                 ))
                 .toList();
@@ -192,7 +192,7 @@ public class EventRecurrenceService {
             RecurrenceEditScope recurrenceEditScope,
             LocalDateTime occurrenceAt
     ) {
-        if (event.getEventKind() == EventKind.SINGLE) {
+        if (Boolean.TRUE.equals(event.getIsSingle())) {
             return true;
         }
 
@@ -215,8 +215,8 @@ public class EventRecurrenceService {
     private void deleteAllSeries(
             Event event
     ) {
-        recurrenceExceptionRepository.deleteByEventId(event.getEventId());
-        recurrenceRuleRepository.deleteByEventId(event.getEventId());
+        recurrenceExceptionRepository.deleteByEvent_EventId(event.getEventId());
+        recurrenceRuleRepository.deleteByEvent_EventId(event.getEventId());
     }
 
     private void deleteThisInstance(
@@ -227,9 +227,9 @@ public class EventRecurrenceService {
         validateOccurrence(event, recurrenceRule, occurrenceAt);
 
         RecurrenceException recurrenceException = recurrenceExceptionRepository
-                .findByEventIdAndOriginalOccurrenceAt(event.getEventId(), occurrenceAt)
+                .findByEvent_EventIdAndOriginalOccurrenceAt(event.getEventId(), occurrenceAt)
                 .orElseGet(() -> recurrenceExceptionRepository.save(
-                        RecurrenceException.createCancelled(event.getEventId(), occurrenceAt)
+                        RecurrenceException.createCancelled(event, occurrenceAt)
                 ));
         recurrenceException.cancel();
     }
@@ -242,7 +242,7 @@ public class EventRecurrenceService {
         validateOccurrence(event, recurrenceRule, occurrenceAt);
 
         recurrenceRule.finishBefore(occurrenceAt);
-        recurrenceExceptionRepository.deleteByEventIdAndOriginalOccurrenceAtGreaterThanEqual(
+        recurrenceExceptionRepository.deleteByEvent_EventIdAndOriginalOccurrenceAtGreaterThanEqual(
                 event.getEventId(),
                 occurrenceAt
         );
@@ -251,7 +251,7 @@ public class EventRecurrenceService {
     private RecurrenceRule getRecurrenceRule(
             Event event
     ) {
-        return recurrenceRuleRepository.findByEventId(event.getEventId())
+        return recurrenceRuleRepository.findByEvent_EventId(event.getEventId())
                 .orElseThrow(() -> new RestApiException(CustomErrorCode.COMMON_INVALID_REQUEST));
     }
 
