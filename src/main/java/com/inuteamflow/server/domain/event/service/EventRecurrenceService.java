@@ -7,7 +7,6 @@ import com.inuteamflow.server.domain.event.entity.Event;
 import com.inuteamflow.server.domain.event.entity.EventParticipant;
 import com.inuteamflow.server.domain.event.entity.RecurrenceException;
 import com.inuteamflow.server.domain.event.entity.RecurrenceRule;
-import com.inuteamflow.server.domain.event.enums.EventKind;
 import com.inuteamflow.server.domain.event.enums.RecurrenceEditScope;
 import com.inuteamflow.server.domain.event.repository.EventParticipantRepository;
 import com.inuteamflow.server.domain.event.repository.EventRepository;
@@ -69,7 +68,7 @@ public class EventRecurrenceService {
     ) {
         event.increaseSequence();
 
-        if (event.getEventKind() == EventKind.SINGLE) {
+        if (Boolean.TRUE.equals(event.getIsSingle())) {
             return updateSingleEvent(event, command);
         }
         validateRecurrenceRequired(command);
@@ -193,7 +192,7 @@ public class EventRecurrenceService {
             RecurrenceEditScope recurrenceEditScope,
             LocalDateTime occurrenceAt
     ) {
-        if (event.getEventKind() == EventKind.SINGLE) {
+        if (Boolean.TRUE.equals(event.getIsSingle())) {
             return true;
         }
 

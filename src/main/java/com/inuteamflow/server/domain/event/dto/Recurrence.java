@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -23,7 +24,7 @@ public class Recurrence {
     @Positive
     private Integer intervalValue;
 
-    private DayOfWeek byDay;
+    private List<DayOfWeek> byDay;
 
     @Min(1)
     @Max(31)
@@ -41,6 +42,15 @@ public class Recurrence {
     @AssertTrue(message = "untilAt and occurrenceCount cannot be used together")
     public boolean isValidEndCondition() {
         return untilAt == null || occurrenceCount == null;
+    }
+
+    @AssertTrue(message = "byDay is required for weekly recurrence")
+    public boolean isValidWeeklyByDay() {
+        if (freq != RecurrenceFrequency.WEEKLY) {
+            return true;
+        }
+
+        return byDay != null && !byDay.isEmpty();
     }
 
     public static Recurrence create(RecurrenceRule recurrenceRule) {

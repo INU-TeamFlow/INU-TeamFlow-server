@@ -7,7 +7,6 @@ import com.inuteamflow.server.domain.event.dto.response.EventListResponse;
 import com.inuteamflow.server.domain.event.entity.Event;
 import com.inuteamflow.server.domain.event.entity.EventParticipant;
 import com.inuteamflow.server.domain.event.entity.RecurrenceRule;
-import com.inuteamflow.server.domain.event.enums.EventKind;
 import com.inuteamflow.server.domain.event.enums.RecurrenceEditScope;
 import com.inuteamflow.server.domain.event.repository.EventParticipantRepository;
 import com.inuteamflow.server.domain.event.repository.EventRepository;
@@ -39,15 +38,15 @@ public class MyEventService {
     ) {
         EventOccurrenceService.DateRange dateRange = eventOccurrenceService.createMonthlyDateRange(year, month);
 
-        List<Event> singleEvents = new ArrayList<>(eventRepository.findByCreatedByAndTeamIsNullAndEventKindAndStartAtBeforeAndEndAtAfter(
+        List<Event> singleEvents = new ArrayList<>(eventRepository.findByCreatedByAndTeamIsNullAndIsSingleAndStartAtBeforeAndEndAtAfter(
                 user.getUserId(),
-                EventKind.SINGLE,
+                true,
                 dateRange.endAt(),
                 dateRange.startAt()
         ));
-        List<Event> recurringEvents = eventRepository.findByCreatedByAndTeamIsNullAndEventKindAndStartAtBefore(
+        List<Event> recurringEvents = eventRepository.findByCreatedByAndTeamIsNullAndIsSingleAndStartAtBefore(
                 user.getUserId(),
-                EventKind.RECURRING,
+                false,
                 dateRange.endAt()
         );
         List<EventListResponse> recurringOccurrences = new ArrayList<>(eventOccurrenceService.expandRecurringEvents(
@@ -62,16 +61,16 @@ public class MyEventService {
                 .toList();
 
         if (!participatingEventIds.isEmpty()) {
-            singleEvents.addAll(eventRepository.findByEventIdInAndEventKindAndStartAtBeforeAndEndAtAfter(
+            singleEvents.addAll(eventRepository.findByEventIdInAndIsSingleAndStartAtBeforeAndEndAtAfter(
                     participatingEventIds,
-                    EventKind.SINGLE,
+                    true,
                     dateRange.endAt(),
                     dateRange.startAt()
             ));
 
-            List<Event> participatingRecurringEvents = eventRepository.findByEventIdInAndEventKindAndStartAtBefore(
+            List<Event> participatingRecurringEvents = eventRepository.findByEventIdInAndIsSingleAndStartAtBefore(
                     participatingEventIds,
-                    EventKind.RECURRING,
+                    false,
                     dateRange.endAt()
             );
             recurringOccurrences.addAll(eventOccurrenceService.expandRecurringEvents(

@@ -11,6 +11,8 @@ import lombok.NoArgsConstructor;
 
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Entity
@@ -34,9 +36,15 @@ public class RecurrenceRule extends BaseTimeEntity {
     @Column(name = "interval_value")
     private Integer intervalValue;
 
+    // 별도의 테이블을 생성하여 byDay를 리스트로 관리한다.
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(
+            name = "recurrence_rule_by_day",
+            joinColumns = @JoinColumn(name = "recurrence_rule_id")
+    )
     @Column(name = "by_day")
     @Enumerated(EnumType.STRING)
-    private DayOfWeek byDay;
+    private List<DayOfWeek> byDay = new ArrayList<>();
 
     @Column(name = "by_month_day")
     private Integer byMonthDay;
@@ -58,7 +66,7 @@ public class RecurrenceRule extends BaseTimeEntity {
             Event event,
             RecurrenceFrequency freq,
             Integer intervalValue,
-            DayOfWeek byDay,
+            List<DayOfWeek> byDay,
             Integer byMonthDay,
             LocalDateTime seriesStartAt,
             LocalDateTime untilAt,
@@ -68,7 +76,7 @@ public class RecurrenceRule extends BaseTimeEntity {
         this.event = event;
         this.freq = freq;
         this.intervalValue = intervalValue;
-        this.byDay = byDay;
+        this.byDay = byDay == null ? new ArrayList<>() : new ArrayList<>(byDay);
         this.byMonthDay = byMonthDay;
         this.seriesStartAt = seriesStartAt;
         this.untilAt = untilAt;
@@ -104,7 +112,9 @@ public class RecurrenceRule extends BaseTimeEntity {
     ) {
         this.freq = recurrence.getFreq();
         this.intervalValue = recurrence.getIntervalValue();
-        this.byDay = recurrence.getByDay();
+        this.byDay = recurrence.getByDay() == null
+                ? new ArrayList<>()
+                : new ArrayList<>(recurrence.getByDay());
         this.byMonthDay = recurrence.getByMonthDay();
         this.seriesStartAt = seriesStartAt;
         this.untilAt = recurrence.getUntilAt();

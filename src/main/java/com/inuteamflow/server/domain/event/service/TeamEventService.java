@@ -7,7 +7,6 @@ import com.inuteamflow.server.domain.event.dto.response.EventListResponse;
 import com.inuteamflow.server.domain.event.entity.Event;
 import com.inuteamflow.server.domain.event.entity.EventParticipant;
 import com.inuteamflow.server.domain.event.entity.RecurrenceRule;
-import com.inuteamflow.server.domain.event.enums.EventKind;
 import com.inuteamflow.server.domain.event.enums.EventRole;
 import com.inuteamflow.server.domain.event.enums.RecurrenceEditScope;
 import com.inuteamflow.server.domain.event.repository.EventParticipantRepository;
@@ -51,15 +50,15 @@ public class TeamEventService {
         validateTeamMember(team, user);
         EventOccurrenceService.DateRange dateRange = eventOccurrenceService.createMonthlyDateRange(year, month);
 
-        List<Event> singleEvents = eventRepository.findByTeamAndEventKindAndStartAtBeforeAndEndAtAfter(
+        List<Event> singleEvents = eventRepository.findByTeamAndIsSingleAndStartAtBeforeAndEndAtAfter(
                 team,
-                EventKind.SINGLE,
+                true,
                 dateRange.endAt(),
                 dateRange.startAt()
         );
-        List<Event> recurringEvents = eventRepository.findByTeamAndEventKindAndStartAtBefore(
+        List<Event> recurringEvents = eventRepository.findByTeamAndIsSingleAndStartAtBefore(
                 team,
-                EventKind.RECURRING,
+                false,
                 dateRange.endAt()
         );
         List<EventListResponse> recurringOccurrences = eventOccurrenceService.expandRecurringEvents(
@@ -80,7 +79,7 @@ public class TeamEventService {
         TeamMember host = validateTeamMember(team, user);
         Event event = eventRepository.save(Event.create(team, request));
         RecurrenceRule recurrenceRule = eventRecurrenceService.createRecurrenceRule(event, request);
-        createParticipants(event, team, host, request);
+        createParticipants(event, team, host, request.getParticipants());
 
         return EventDetailResponse.create(event, recurrenceRule);
     }
@@ -95,7 +94,10 @@ public class TeamEventService {
         Event event = getTeamEvent(teamId, eventId);
         validateEventManager(event.getTeam(), user, event);
 
-        return eventRecurrenceService.updateEvent(event, event.getTeam(), request);
+        EventDetailResponse response = eventRecurrenceService.updateEvent(event, event.getTeam(), request);
+        syncParticipants(response.getEventId(), event.getTeam(), request.getParticipants());
+
+        return response;
     }
 
     @Transactional
@@ -119,13 +121,13 @@ public class TeamEventService {
             Event event,
             Team team,
             TeamMember host,
-            TeamEventCreateRequest request
+            List<Long> participantIds
     ) {
         List<EventParticipant> participants = new ArrayList<>();
         participants.add(EventParticipant.create(event, host, EventRole.HOST));
 
-        if (request.getParticipants() != null && !request.getParticipants().isEmpty()) {
-            request.getParticipants().stream()
+        if (participantIds != null && !participantIds.isEmpty()) {
+            participantIds.stream()
                     .filter(Objects::nonNull)
                     .distinct()
                     .filter(teamMemberId -> !teamMemberId.equals(host.getTeamMemberId()))
@@ -138,6 +140,22 @@ public class TeamEventService {
         }
 
         eventParticipantRepository.saveAll(participants);
+    }
+
+    private void syncParticipants(
+            Long eventId,
+            Team team,
+            List<Long> participantIds
+    ) {
+        Event targetEvent = getTeamEvent(team.getTeamId(), eventId);
+        TeamMember host = eventParticipantRepository.findByEvent_EventId(eventId).stream()
+                .filter(participant -> participant.getEventRole() == EventRole.HOST)
+                .findFirst()
+                .map(EventParticipant::getTeamMember)
+                .orElseThrow(() -> new RestApiException(CustomErrorCode.COMMON_INVALID_REQUEST));
+
+        eventParticipantRepository.deleteByEvent_EventId(eventId);
+        createParticipants(targetEvent, team, host, participantIds);
     }
 
     private Event getTeamEvent(

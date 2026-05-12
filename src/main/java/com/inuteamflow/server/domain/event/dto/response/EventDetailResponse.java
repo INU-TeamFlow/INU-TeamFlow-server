@@ -4,8 +4,7 @@ import com.inuteamflow.server.domain.event.dto.Recurrence;
 import com.inuteamflow.server.domain.event.entity.Event;
 import com.inuteamflow.server.domain.event.entity.RecurrenceException;
 import com.inuteamflow.server.domain.event.entity.RecurrenceRule;
-import com.inuteamflow.server.domain.event.enums.EventKind;
-import com.inuteamflow.server.domain.event.enums.EventStatus;
+import com.inuteamflow.server.domain.event.enums.EventColor;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -28,10 +27,10 @@ public class EventDetailResponse {
     private LocalDateTime endAt;
 
     private Boolean isAllDay;
-    private String color;
+    private EventColor color;
 
-    private EventKind eventKind;
-    private EventStatus status;
+    private Boolean isSingle;
+    private Boolean isFinished;
     private Boolean isException;
 
     private Recurrence recurrence;
@@ -51,8 +50,8 @@ public class EventDetailResponse {
                 event.getEndAt(),
                 event.getIsAllDay(),
                 event.getColor(),
-                event.getEventKind(),
-                event.getStatus(),
+                event.getIsSingle(),
+                event.getIsFinished(),
                 false,
                 Recurrence.create(recurrenceRule)
         );
@@ -74,8 +73,8 @@ public class EventDetailResponse {
                 recurrenceException.getModifiedEndAt(),
                 recurrenceException.getModifiedIsAllDay(),
                 recurrenceException.getModifiedColor(),
-                event.getEventKind(),
-                event.getStatus(),
+                event.getIsSingle(),
+                event.getIsFinished(),
                 true,
                 Recurrence.create(recurrenceRule)
         );

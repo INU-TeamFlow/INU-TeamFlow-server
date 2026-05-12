@@ -2,6 +2,7 @@ package com.inuteamflow.server.domain.event.dto.request;
 
 import com.inuteamflow.server.domain.event.dto.Recurrence;
 import com.inuteamflow.server.domain.event.dto.EventCreateCommand;
+import com.inuteamflow.server.domain.event.enums.EventColor;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
@@ -31,7 +32,8 @@ public class TeamEventCreateRequest implements EventCreateCommand {
     @NotNull
     private Boolean isAllDay;
 
-    private String color;
+    @NotNull
+    private EventColor color;
 
     private List<@NotNull Long> participants;
 

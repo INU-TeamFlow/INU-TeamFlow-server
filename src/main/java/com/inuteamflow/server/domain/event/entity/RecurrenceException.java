@@ -1,6 +1,7 @@
 package com.inuteamflow.server.domain.event.entity;
 
 import com.inuteamflow.server.domain.event.dto.EventUpdateCommand;
+import com.inuteamflow.server.domain.event.enums.EventColor;
 import com.inuteamflow.server.domain.event.enums.RecurrenceExceptionType;
 import com.inuteamflow.server.global.BaseTimeEntity;
 import jakarta.persistence.*;
@@ -49,7 +50,8 @@ public class RecurrenceException extends BaseTimeEntity {
     private LocalDateTime modifiedEndAt;
 
     @Column(name = "modified_color")
-    private String modifiedColor;
+    @Enumerated(EnumType.STRING)
+    private EventColor modifiedColor;
 
     @Column(name = "modified_is_all_day")
     private Boolean modifiedIsAllDay;
@@ -63,7 +65,7 @@ public class RecurrenceException extends BaseTimeEntity {
             String modifiedDescription,
             LocalDateTime modifiedStartAt,
             LocalDateTime modifiedEndAt,
-            String modifiedColor,
+            EventColor modifiedColor,
             Boolean modifiedAllDay
     ) {
         this.event = event;
