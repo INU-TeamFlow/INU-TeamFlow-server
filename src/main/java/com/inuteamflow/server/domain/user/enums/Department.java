@@ -2,6 +2,8 @@ package com.inuteamflow.server.domain.user.enums;
 
 public enum Department {
 
+    // TODO: 모든 과를 Enum 으로...
+
     // 인문대학
     HUMANITIES,
 
