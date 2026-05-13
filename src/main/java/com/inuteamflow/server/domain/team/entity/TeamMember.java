@@ -52,4 +52,8 @@ public class TeamMember extends BaseTimeEntity {
                 .team(team).user(user).teamRole(teamRole)
                 .build();
     }
+
+    public void updateRole(TeamRole role) {
+        this.teamRole = role;
+    }
 }

@@ -4,6 +4,7 @@ import com.inuteamflow.server.domain.team.dto.request.TeamCreateRequest;
 import com.inuteamflow.server.domain.team.dto.request.TeamUpdateRequest;
 import com.inuteamflow.server.domain.team.enums.TeamCategory;
 import com.inuteamflow.server.domain.user.entity.User;
+import com.inuteamflow.server.global.BaseEntity;
 import com.inuteamflow.server.global.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -15,7 +16,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @Table(name = "team")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Team extends BaseTimeEntity {
+public class Team extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -37,23 +38,18 @@ public class Team extends BaseTimeEntity {
     @Column(name = "image_key")
     private String imageKey;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by")
-    private User createdBy;
-
     @Builder
     private Team (String name, String description, TeamCategory category,
-                  String link, String sns, String imageKey, User createdBy) {
+                  String link, String sns, String imageKey) {
         this.name = name;
         this.description = description;
         this.category = category;
         this.link = link;
         this.sns = sns;
         this.imageKey = imageKey;
-        this.createdBy = createdBy;
     }
 
-    public static Team create(TeamCreateRequest request, User creator) {
+    public static Team create(TeamCreateRequest request) {
         return Team.builder()
                 .name(request.getName())
                 .description(request.getDescription())
@@ -61,7 +57,6 @@ public class Team extends BaseTimeEntity {
                 .link(request.getLink())
                 .sns(request.getSns())
                 .imageKey(request.getImageKey())
-                .createdBy(creator)
                 .build();
     }
 
