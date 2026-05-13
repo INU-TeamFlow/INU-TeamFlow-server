@@ -47,7 +47,7 @@ public class TeamEventUpdateRequest implements EventUpdateCommand {
     @Valid
     private Recurrence recurrence;
 
-    @AssertTrue(message = "startAt must be before endAt")
+    @AssertTrue(message = "startAt < endAt 여야 합니다.")
     public boolean isValidDateRange() {
         if (startAt == null || endAt == null) {
             return true;
@@ -56,7 +56,7 @@ public class TeamEventUpdateRequest implements EventUpdateCommand {
         return startAt.isBefore(endAt);
     }
 
-    @AssertTrue(message = "occurrenceAt is required for THIS_INSTANCE or THIS_AND_FOLLOWING")
+    @AssertTrue(message = "occurrenceAt은 THIS_INSTANCE 혹은 THIS_AND_FOLLOWING가 필요합니다.")
     public boolean isValidOccurrenceAt() {
         if (recurrenceEditScope == RecurrenceEditScope.THIS_INSTANCE
                 || recurrenceEditScope == RecurrenceEditScope.THIS_AND_FOLLOWING) {

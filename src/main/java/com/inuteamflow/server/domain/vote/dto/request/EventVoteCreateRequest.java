@@ -45,7 +45,7 @@ public class EventVoteCreateRequest {
         return !startDate.isAfter(endDate);
     }
 
-    @AssertTrue(message = "isAllDay가 false일 때, startTime과 endTime은 필수이고 startTime < endTime")
+    @AssertTrue(message = "isAllDay가 false일 때, startTime과 endTime은 필수이고 startTime < endTime 여야 합니다.")
     public boolean isValidTimeRange() {
         if (isAllDay == null || isAllDay) {
             return true;

@@ -155,6 +155,8 @@ public class TeamEventService {
                 .orElseThrow(() -> new RestApiException(CustomErrorCode.EVENT_PARTICIPANT_HOST_NOT_FOUND));
 
         eventParticipantRepository.deleteByEvent_EventId(eventId);
+        eventParticipantRepository.flush();
+
         createParticipants(targetEvent, team, host, participantIds);
     }
 

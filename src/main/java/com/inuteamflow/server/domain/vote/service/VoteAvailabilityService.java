@@ -29,6 +29,7 @@ public class VoteAvailabilityService {
             List<VoteTimeSlot> voteTimeSlots
     ) {
         voteAvailabilityRepository.deleteByVoteParticipant(voteParticipant);
+        voteAvailabilityRepository.flush();
 
         List<VoteAvailability> voteAvailabilities = new ArrayList<>();
 

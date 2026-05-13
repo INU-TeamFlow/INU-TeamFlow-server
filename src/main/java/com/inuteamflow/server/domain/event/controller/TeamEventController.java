@@ -19,12 +19,12 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/teams/{teamId}")
+@RequestMapping("/api/v1/teams/{teamId}/events")
 public class TeamEventController {
 
     private final TeamEventService teamEventService;
 
-    @GetMapping("/events")
+    @GetMapping
     public ApiResponse<List<EventListResponse>> getTeamEventList(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @PathVariable("teamId") Long teamId,
@@ -34,7 +34,7 @@ public class TeamEventController {
         return ApiResponse.ok(teamEventService.getTeamEventList(userDetails.getUser(), teamId, year, month));
     }
 
-    @PostMapping("/events")
+    @PostMapping
     public ApiResponse<EventDetailResponse> createEvent(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @PathVariable("teamId") Long teamId,
@@ -43,21 +43,21 @@ public class TeamEventController {
         return ApiResponse.ok(teamEventService.createTeamEvent(userDetails.getUser(), teamId, request));
     }
 
-    @PutMapping("/events/{eventId}")
+    @PutMapping("/{eventId}")
     public ApiResponse<EventDetailResponse> updateTeamEvent(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @PathVariable("teamId") Long teamId,
-            @PathVariable Long eventId,
+            @PathVariable("eventId") Long eventId,
             @Valid @RequestBody TeamEventUpdateRequest request
     ) {
         return ApiResponse.ok(teamEventService.updateTeamEvent(userDetails.getUser(), teamId, eventId, request));
     }
 
-    @DeleteMapping("/events/{eventId}")
+    @DeleteMapping("/{eventId}")
     public ApiResponse<Void> deleteTeamEvent(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @PathVariable("teamId") Long teamId,
-            @PathVariable Long eventId,
+            @PathVariable("eventId") Long eventId,
             @RequestParam(required = false) RecurrenceEditScope recurrenceEditScope,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime occurrenceAt
     ) {

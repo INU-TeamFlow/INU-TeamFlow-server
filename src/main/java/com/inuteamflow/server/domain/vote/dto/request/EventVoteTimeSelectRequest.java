@@ -23,7 +23,7 @@ public class EventVoteTimeSelectRequest {
     @NotNull
     private LocalDateTime selectedEndAt;
 
-    @AssertTrue(message = "selectedStartAt < selectedEndAt")
+    @AssertTrue(message = "selectedStartAt < selectedEndAt 여야 합니다")
     public boolean isValidDateTimeRange() {
         if (selectedStartAt == null || selectedEndAt == null) {
             return true;
