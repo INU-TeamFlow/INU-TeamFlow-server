@@ -252,14 +252,14 @@ public class EventRecurrenceService {
             Event event
     ) {
         return recurrenceRuleRepository.findByEvent_EventId(event.getEventId())
-                .orElseThrow(() -> new RestApiException(CustomErrorCode.COMMON_INVALID_REQUEST));
+                .orElseThrow(() -> new RestApiException(CustomErrorCode.EVENT_RECURRENCE_RULE_NOT_FOUND));
     }
 
     private void validateRecurrenceRequired(
             EventUpdateCommand command
     ) {
         if (command.getRecurrence() == null) {
-            throw new RestApiException(CustomErrorCode.COMMON_INVALID_REQUEST);
+            throw new RestApiException(CustomErrorCode.EVENT_RECURRENCE_REQUIRED);
         }
     }
 
@@ -269,7 +269,7 @@ public class EventRecurrenceService {
             LocalDateTime occurrenceAt
     ) {
         if (!eventOccurrenceService.existsOccurrence(event, recurrenceRule, occurrenceAt)) {
-            throw new RestApiException(CustomErrorCode.COMMON_INVALID_REQUEST);
+            throw new RestApiException(CustomErrorCode.EVENT_RECURRENCE_OCCURRENCE_NOT_FOUND);
         }
     }
 

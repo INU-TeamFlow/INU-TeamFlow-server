@@ -40,7 +40,7 @@ public class TeamEventCreateRequest implements EventCreateCommand {
     @Valid
     private Recurrence recurrence;
 
-    @AssertTrue(message = "startAt must be before endAt")
+    @AssertTrue(message = "startAt < endAt 여야 합니다.")
     public boolean isValidDateRange() {
         if (startAt == null || endAt == null) {
             return true;

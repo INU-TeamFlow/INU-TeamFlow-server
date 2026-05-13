@@ -152,9 +152,11 @@ public class TeamEventService {
                 .filter(participant -> participant.getEventRole() == EventRole.HOST)
                 .findFirst()
                 .map(EventParticipant::getTeamMember)
-                .orElseThrow(() -> new RestApiException(CustomErrorCode.COMMON_INVALID_REQUEST));
+                .orElseThrow(() -> new RestApiException(CustomErrorCode.EVENT_PARTICIPANT_HOST_NOT_FOUND));
 
         eventParticipantRepository.deleteByEvent_EventId(eventId);
+        eventParticipantRepository.flush();
+
         createParticipants(targetEvent, team, host, participantIds);
     }
 
@@ -163,10 +165,10 @@ public class TeamEventService {
             Long eventId
     ) {
         Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new RestApiException(CustomErrorCode.COMMON_HANDLER_NOT_FOUND));
+                .orElseThrow(() -> new RestApiException(CustomErrorCode.EVENT_NOT_FOUND));
 
         if (!teamId.equals(event.getTeamId())) {
-            throw new RestApiException(CustomErrorCode.COMMON_INVALID_REQUEST);
+            throw new RestApiException(CustomErrorCode.EVENT_TEAM_MISMATCH);
         }
 
         return event;
@@ -187,7 +189,7 @@ public class TeamEventService {
                 .orElseThrow(() -> new RestApiException(CustomErrorCode.TEAM_MEMBER_NOT_FOUND));
 
         if (!team.getTeamId().equals(teamMember.getTeam().getTeamId())) {
-            throw new RestApiException(CustomErrorCode.COMMON_INVALID_REQUEST);
+            throw new RestApiException(CustomErrorCode.EVENT_PARTICIPANT_INVALID);
         }
 
         return teamMember;
@@ -211,6 +213,6 @@ public class TeamEventService {
             return teamMember;
         }
 
-        throw new RestApiException(CustomErrorCode.TEAM_FORBIDDEN);
+        throw new RestApiException(CustomErrorCode.EVENT_FORBIDDEN);
     }
 }
