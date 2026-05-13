@@ -22,6 +22,8 @@ public interface VoteAvailabilityRepository extends JpaRepository<VoteAvailabili
             """)
     List<VoteAvailability> findByVoteId(@Param("voteId") Long voteId);
 
+    List<VoteAvailability> findByVoteTimeSlot(VoteTimeSlot voteTimeSlot);
+
     Integer countByVoteTimeSlot(VoteTimeSlot voteTimeSlot);
 
     void deleteByVoteParticipant(VoteParticipant voteParticipant);

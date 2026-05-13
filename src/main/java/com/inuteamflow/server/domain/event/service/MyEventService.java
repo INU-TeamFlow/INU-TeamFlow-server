@@ -123,10 +123,10 @@ public class MyEventService {
             Long eventId
     ) {
         Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new RestApiException(CustomErrorCode.COMMON_HANDLER_NOT_FOUND));
+                .orElseThrow(() -> new RestApiException(CustomErrorCode.EVENT_NOT_FOUND));
 
         if (event.getTeamId() != null || !event.getCreatedBy().equals(user.getUserId())) {
-            throw new RestApiException(CustomErrorCode.COMMON_INVALID_REQUEST);
+            throw new RestApiException(CustomErrorCode.EVENT_FORBIDDEN);
         }
 
         return event;

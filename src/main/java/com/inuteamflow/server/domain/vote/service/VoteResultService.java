@@ -10,7 +10,6 @@ import com.inuteamflow.server.domain.team.entity.TeamMember;
 import com.inuteamflow.server.domain.vote.dto.VoteResultEventCreateCommand;
 import com.inuteamflow.server.domain.vote.dto.request.EventVoteTimeSelectRequest;
 import com.inuteamflow.server.domain.vote.entity.Vote;
-import com.inuteamflow.server.domain.vote.entity.VoteParticipant;
 import com.inuteamflow.server.domain.vote.entity.VoteResult;
 import com.inuteamflow.server.domain.vote.repository.VoteResultRepository;
 import com.inuteamflow.server.global.exception.error.CustomErrorCode;
@@ -36,7 +35,7 @@ public class VoteResultService {
     public EventDetailResponse createVoteResult(
             Vote vote,
             TeamMember host,
-            List<VoteParticipant> participants,
+            List<TeamMember> participants,
             EventVoteTimeSelectRequest request
     ) {
         validateVoteResultCreatable(vote, request);
@@ -45,7 +44,7 @@ public class VoteResultService {
                 vote.getTeam(),
                 new VoteResultEventCreateCommand(vote, request)
         ));
-        createEventParticipants(event, vote, host, participants);
+        createEventParticipants(event, host, participants);
         voteResultRepository.save(VoteResult.create(
                 vote,
                 event,
@@ -64,37 +63,33 @@ public class VoteResultService {
             EventVoteTimeSelectRequest request
     ) {
         if (voteResultRepository.existsByVote(vote)) {
-            throw new RestApiException(CustomErrorCode.COMMON_INVALID_REQUEST);
+            throw new RestApiException(CustomErrorCode.VOTE_RESULT_ALREADY_EXISTS);
         }
 
         if (request.getSelectedStartAt() == null || request.getSelectedEndAt() == null) {
-            throw new RestApiException(CustomErrorCode.COMMON_INVALID_REQUEST);
+            throw new RestApiException(CustomErrorCode.VOTE_RESULT_TIME_INVALID);
         }
 
         if (!request.getSelectedStartAt().isBefore(request.getSelectedEndAt())) {
-            throw new RestApiException(CustomErrorCode.COMMON_INVALID_REQUEST);
+            throw new RestApiException(CustomErrorCode.VOTE_RESULT_TIME_INVALID);
         }
     }
 
-    // TODO: 현재는 모든 투표 참여자를 일정 참여자로 편입하는데, 추후 선택한 시간대에 투표한 사람만 일정 참여자로 편입하는 방식으로 수정
-    // 투표 참여자를 일정 참여자로 생성한다.
+    // 최종 선택 시간대에 공통적으로 참석 가능한 투표자를 일정 참여자로 편입한다.
     private void createEventParticipants(
             Event event,
-            Vote vote,
             TeamMember host,
-            List<VoteParticipant> participants
+            List<TeamMember> participants
     ) {
         List<EventParticipant> eventParticipants = new ArrayList<>();
         eventParticipants.add(EventParticipant.create(event, host, EventRole.HOST));
 
-        for (VoteParticipant participant : participants) {
-            TeamMember teamMember = participant.getTeamMember();
-
-            if (teamMember.getTeamMemberId().equals(host.getTeamMemberId())) {
+        for (TeamMember participant : participants) {
+            if (participant.getTeamMemberId().equals(host.getTeamMemberId())) {
                 continue;
             }
 
-            eventParticipants.add(EventParticipant.create(event, teamMember, EventRole.PARTICIPANT));
+            eventParticipants.add(EventParticipant.create(event, participant, EventRole.PARTICIPANT));
         }
 
         eventParticipantRepository.saveAll(eventParticipants);

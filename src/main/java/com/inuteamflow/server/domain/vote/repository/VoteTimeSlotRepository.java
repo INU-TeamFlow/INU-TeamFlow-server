@@ -1,11 +1,14 @@
 package com.inuteamflow.server.domain.vote.repository;
 
+import com.inuteamflow.server.domain.vote.entity.Vote;
 import com.inuteamflow.server.domain.vote.entity.VoteDate;
 import com.inuteamflow.server.domain.vote.entity.VoteTimeSlot;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 public interface VoteTimeSlotRepository extends JpaRepository<VoteTimeSlot, Long> {
@@ -17,4 +20,20 @@ public interface VoteTimeSlotRepository extends JpaRepository<VoteTimeSlot, Long
             order by vts.voteDate.date asc, vts.slotStartAt asc
             """)
     List<VoteTimeSlot> findByVoteDatesOrderByDateAndStartAt(@Param("voteDates") List<VoteDate> voteDates);
+
+    @Query("""
+            select vts
+            from VoteTimeSlot vts
+            where vts.voteDate.vote = :vote
+              and vts.voteDate.date = :date
+              and vts.slotStartAt >= :startTime
+              and vts.slotEndAt <= :endTime
+            order by vts.slotStartAt asc
+            """)
+    List<VoteTimeSlot> findByVoteAndDateAndTimeRange(
+            @Param("vote") Vote vote,
+            @Param("date") LocalDate date,
+            @Param("startTime") LocalTime startTime,
+            @Param("endTime") LocalTime endTime
+    );
 }

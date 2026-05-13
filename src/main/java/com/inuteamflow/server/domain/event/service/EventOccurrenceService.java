@@ -38,7 +38,7 @@ public class EventOccurrenceService {
             Integer month
     ) {
         if (year == null || month == null || month < 1 || month > 12) {
-            throw new RestApiException(CustomErrorCode.COMMON_INVALID_REQUEST);
+            throw new RestApiException(CustomErrorCode.EVENT_MONTH_INVALID);
         }
 
         YearMonth yearMonth = YearMonth.of(year, month);

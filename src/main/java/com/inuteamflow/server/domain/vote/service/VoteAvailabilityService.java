@@ -1,5 +1,6 @@
 package com.inuteamflow.server.domain.vote.service;
 
+import com.inuteamflow.server.domain.team.entity.TeamMember;
 import com.inuteamflow.server.domain.vote.entity.Vote;
 import com.inuteamflow.server.domain.vote.entity.VoteAvailability;
 import com.inuteamflow.server.domain.vote.entity.VoteParticipant;
@@ -10,9 +11,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -29,9 +30,11 @@ public class VoteAvailabilityService {
     ) {
         voteAvailabilityRepository.deleteByVoteParticipant(voteParticipant);
 
-        List<VoteAvailability> voteAvailabilities = voteTimeSlots.stream()
-                .map(voteTimeSlot -> VoteAvailability.create(voteParticipant, voteTimeSlot))
-                .toList();
+        List<VoteAvailability> voteAvailabilities = new ArrayList<>();
+
+        for (VoteTimeSlot voteTimeSlot : voteTimeSlots) {
+            voteAvailabilities.add(VoteAvailability.create(voteParticipant, voteTimeSlot));
+        }
 
         voteAvailabilityRepository.saveAll(voteAvailabilities);
     }
@@ -44,11 +47,17 @@ public class VoteAvailabilityService {
             return Map.of();
         }
 
-        return voteAvailabilityRepository.findByVoteId(vote.getVoteId()).stream()
-                .collect(Collectors.groupingBy(
-                        voteAvailability -> voteAvailability.getVoteTimeSlot().getVoteTimeSlotId(),
-                        Collectors.collectingAndThen(Collectors.counting(), Long::intValue)
-                ));
+        Map<Long, Integer> participantCountByTimeSlot = new HashMap<>();
+
+        for (VoteAvailability voteAvailability : voteAvailabilityRepository.findByVoteId(vote.getVoteId())) {
+            Long voteTimeSlotId = voteAvailability.getVoteTimeSlot().getVoteTimeSlotId();
+            participantCountByTimeSlot.put(
+                    voteTimeSlotId,
+                    participantCountByTimeSlot.getOrDefault(voteTimeSlotId, 0) + 1
+            );
+        }
+
+        return participantCountByTimeSlot;
     }
 
     // 특정 시간 슬롯의 선택 인원 수를 조회한다.
@@ -56,5 +65,38 @@ public class VoteAvailabilityService {
             VoteTimeSlot voteTimeSlot
     ) {
         return voteAvailabilityRepository.countByVoteTimeSlot(voteTimeSlot);
+    }
+
+    // 특정 시간칸에 가능한 참여자 목록을 조회한다.
+    public List<TeamMember> getAvailableTeamMembers(
+            List<VoteTimeSlot> voteTimeSlots
+    ) {
+        if (voteTimeSlots == null || voteTimeSlots.isEmpty()) {
+            return List.of();
+        }
+
+        List<VoteAvailability> voteAvailabilities = voteAvailabilityRepository.findByVoteTimeSlotIn(voteTimeSlots);
+        List<TeamMember> teamMembers = new ArrayList<>();
+        Map<Long, TeamMember> teamMemberById = new HashMap<>();
+        Map<Long, Integer> selectedSlotCountByTeamMemberId = new HashMap<>();
+
+        for (VoteAvailability voteAvailability : voteAvailabilities) {
+            TeamMember teamMember = voteAvailability.getVoteParticipant().getTeamMember();
+            Long teamMemberId = teamMember.getTeamMemberId();
+
+            teamMemberById.put(teamMemberId, teamMember);
+            selectedSlotCountByTeamMemberId.put(
+                    teamMemberId,
+                    selectedSlotCountByTeamMemberId.getOrDefault(teamMemberId, 0) + 1
+            );
+        }
+
+        for (Long teamMemberId : selectedSlotCountByTeamMemberId.keySet()) {
+            if (selectedSlotCountByTeamMemberId.get(teamMemberId) == voteTimeSlots.size()) {
+                teamMembers.add(teamMemberById.get(teamMemberId));
+            }
+        }
+
+        return teamMembers;
     }
 }

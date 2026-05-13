@@ -90,11 +90,16 @@ public class VoteService {
         Vote vote = getVoteById(voteId);
         List<VoteTimeSlot> voteTimeSlots = voteTimeService.getVoteTimeSlots(vote);
         Map<Long, Integer> participantCountByTimeSlot = voteAvailabilityService.countParticipantsByTimeSlot(vote);
+        List<EventVoteTimeSlotResponse> responses = new ArrayList<>();
 
-        return voteTimeService.createVoteTimeSlotResponses(
-                voteTimeSlots,
-                participantCountByTimeSlot
-        );
+        for (VoteTimeSlot voteTimeSlot : voteTimeSlots) {
+            responses.add(EventVoteTimeSlotResponse.create(
+                    voteTimeSlot,
+                    participantCountByTimeSlot.getOrDefault(voteTimeSlot.getVoteTimeSlotId(), 0)
+            ));
+        }
+
+        return responses;
     }
 
     // 사용자가 가능한 시간 슬롯을 선택한다.
@@ -132,9 +137,15 @@ public class VoteService {
         validateVoteIsOpened(vote);
         TeamMember host = validateTeamMember(vote.getTeam(), userDetails);
 
-        List<VoteParticipant> voteParticipants = voteParticipantService.getVoteParticipants(vote);
+        List<VoteTimeSlot> selectedVoteTimeSlots = voteTimeService.getContinuousVoteTimeSlots(
+                vote,
+                request.getSelectedStartAt(),
+                request.getSelectedEndAt()
+        );
 
-        return voteResultService.createVoteResult(vote, host, voteParticipants, request);
+        List<TeamMember> availableTeamMembers = voteAvailabilityService.getAvailableTeamMembers(selectedVoteTimeSlots);
+
+        return voteResultService.createVoteResult(vote, host, availableTeamMembers, request);
     }
 
     // 팀을 조회한다.
@@ -159,17 +170,20 @@ public class VoteService {
             Long voteId
     ) {
         return voteRepository.findById(voteId)
-                .orElseThrow(() -> new RestApiException(CustomErrorCode.COMMON_HANDLER_NOT_FOUND));
+                .orElseThrow(() -> new RestApiException(CustomErrorCode.VOTE_NOT_FOUND));
     }
 
     // 투표 응답 DTO를 생성한다.
     private EventVoteResponse createEventVoteResponse(
             Vote vote
     ) {
+        VoteParticipantService.VoteParticipantNames voteParticipantNames =
+                voteParticipantService.getVoteParticipantNames(vote);
+
         return EventVoteResponse.create(
                 vote,
-                voteParticipantService.getCompletedVoterNames(vote),
-                voteParticipantService.getUncompletedVoterNames(vote)
+                voteParticipantNames.completedVoterNames(),
+                voteParticipantNames.uncompletedVoterNames()
         );
     }
 
@@ -178,7 +192,7 @@ public class VoteService {
             Vote vote
     ) {
         if (!Boolean.TRUE.equals(vote.getIsOpened())) {
-            throw new RestApiException(CustomErrorCode.COMMON_INVALID_REQUEST);
+            throw new RestApiException(CustomErrorCode.VOTE_NOT_OPENED);
         }
     }
 

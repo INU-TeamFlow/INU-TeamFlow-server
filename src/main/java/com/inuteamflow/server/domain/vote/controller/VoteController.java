@@ -9,6 +9,7 @@ import com.inuteamflow.server.domain.vote.dto.response.EventVoteResponse;
 import com.inuteamflow.server.domain.vote.dto.response.EventVoteTimeSlotResponse;
 import com.inuteamflow.server.domain.vote.service.VoteService;
 import com.inuteamflow.server.global.response.ApiResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -33,7 +34,7 @@ public class VoteController {
     public ApiResponse<EventVoteResponse> createVote(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @PathVariable("teamId") Long teamId,
-            @RequestBody EventVoteCreateRequest request
+            @Valid @RequestBody EventVoteCreateRequest request
     ) {
         return ApiResponse.ok(voteService.createVote(userDetails, teamId, request));
     }
@@ -56,7 +57,7 @@ public class VoteController {
     public ApiResponse<EventVoteTimeSlotResponse> selectTimeSlot(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @PathVariable("voteId") Long voteId,
-            @RequestBody EventVoteTimeSlotSelectRequest request
+            @Valid @RequestBody EventVoteTimeSlotSelectRequest request
     ) {
         return ApiResponse.ok(voteService.selectTimeSlot(userDetails, voteId, request));
     }
@@ -65,7 +66,7 @@ public class VoteController {
     public ApiResponse<EventDetailResponse> createVoteResult(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @PathVariable("voteId") Long voteId,
-            @RequestBody EventVoteTimeSelectRequest request
+            @Valid @RequestBody EventVoteTimeSelectRequest request
     ) {
         return ApiResponse.ok(voteService.createVoteResult(userDetails, voteId, request));
     }

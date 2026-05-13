@@ -12,8 +12,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -33,58 +34,48 @@ public class VoteParticipantService {
             return;
         }
 
-        List<VoteParticipant> participants = teamMemberIds.stream()
-                .filter(Objects::nonNull)
-                .distinct()
-                .map(teamMemberId -> createVoteParticipant(vote, teamMemberId))
-                .toList();
+        List<VoteParticipant> participants = new ArrayList<>();
+        Set<Long> uniqueTeamMemberIds = new HashSet<>();
+
+        for (Long teamMemberId : teamMemberIds) {
+            if (teamMemberId == null || !uniqueTeamMemberIds.add(teamMemberId)) {
+                continue;
+            }
+
+            participants.add(createVoteParticipant(vote, teamMemberId));
+        }
+
         voteParticipantRepository.saveAll(participants);
     }
 
-    // 투표 참여자 목록을 조회한다.
-    public List<VoteParticipant> getVoteParticipants(
-            Vote vote
-    ) {
-        return voteParticipantRepository.findByVote(vote);
-    }
-
-    // 로그인 한 사용자의 투표 참여 정보를 조회한다.
+    // 투표 참여자를 조회한다.
     public VoteParticipant getVoteParticipant(
             Vote vote,
             TeamMember teamMember
     ) {
         return voteParticipantRepository.findByVoteAndTeamMember(vote, teamMember)
-                .orElseThrow(() -> new RestApiException(CustomErrorCode.COMMON_INVALID_REQUEST));
+                .orElseThrow(() -> new RestApiException(CustomErrorCode.VOTE_PARTICIPANT_NOT_FOUND));
     }
 
     // 투표를 완료한 참여자 이름 목록을 조회한다.
-    public List<String> getCompletedVoterNames(
+    public VoteParticipantNames getVoteParticipantNames(
             Vote vote
     ) {
         List<String> completedVoterNames = new ArrayList<>();
-
-        for (VoteParticipant voteParticipant : voteParticipantRepository.findByVote(vote)) {
-            if (Boolean.TRUE.equals(voteParticipant.getHasCompleted())) {
-                completedVoterNames.add(voteParticipant.getTeamMember().getUser().getName());
-            }
-        }
-
-        return completedVoterNames;
-    }
-
-    // 투표를 완료하지 않은 참여자 이름 목록을 조회한다.
-    public List<String> getUncompletedVoterNames(
-            Vote vote
-    ) {
         List<String> uncompletedVoterNames = new ArrayList<>();
 
         for (VoteParticipant voteParticipant : voteParticipantRepository.findByVote(vote)) {
-            if (!Boolean.TRUE.equals(voteParticipant.getHasCompleted())) {
-                uncompletedVoterNames.add(voteParticipant.getTeamMember().getUser().getName());
+            String voterName = voteParticipant.getTeamMember().getUser().getName();
+
+            if (Boolean.TRUE.equals(voteParticipant.getHasCompleted())) {
+                completedVoterNames.add(voterName);
+                continue;
             }
+
+            uncompletedVoterNames.add(voterName);
         }
 
-        return uncompletedVoterNames;
+        return new VoteParticipantNames(completedVoterNames, uncompletedVoterNames);
     }
 
     // 참여자 사용자 정보를 조회하고 투표 참여자를 생성한다.
@@ -96,9 +87,15 @@ public class VoteParticipantService {
                 .orElseThrow(() -> new RestApiException(CustomErrorCode.TEAM_MEMBER_NOT_FOUND));
 
         if (!vote.getTeam().getTeamId().equals(teamMember.getTeam().getTeamId())) {
-            throw new RestApiException(CustomErrorCode.COMMON_INVALID_REQUEST);
+            throw new RestApiException(CustomErrorCode.VOTE_PARTICIPANT_NOT_FOUND);
         }
 
         return VoteParticipant.create(vote, teamMember);
+    }
+
+    public record VoteParticipantNames(
+            List<String> completedVoterNames,
+            List<String> uncompletedVoterNames
+    ) {
     }
 }
